@@ -1,0 +1,1 @@
+/usr/bin/c++ -g CMakeFiles/typscii.dir/src/main.cpp.o -o typscii  libcore.a 

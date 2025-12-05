@@ -1,0 +1,5 @@
+/home/roghan/repo/ascii_typesetter/build/CMakeFiles/core.dir
+/home/roghan/repo/ascii_typesetter/build/CMakeFiles/typscii.dir
+/home/roghan/repo/ascii_typesetter/build/CMakeFiles/clang-tidy.dir
+/home/roghan/repo/ascii_typesetter/build/CMakeFiles/edit_cache.dir
+/home/roghan/repo/ascii_typesetter/build/CMakeFiles/rebuild_cache.dir
