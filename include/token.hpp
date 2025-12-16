@@ -4,8 +4,12 @@
 #include "source.hpp"
 #include "token_type.hpp"
 
-struct Token {
-    TokenType type;
-    std::string lexeme;
-    SourceSpan span;
+class Token {
+public:
+    Token(TokenType type, std::string_view lexeme, std::size_t line);
+
+private:
+    TokenType type_;
+    std::string_view lexeme_;
+    std::size_t line_;
 };

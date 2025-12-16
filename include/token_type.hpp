@@ -1,6 +1,7 @@
 #pragma once
 
 enum class TokenType {
+    // Delimiters / symbols
     NEWLINE,
     HASH,       // '#'
     EQUAL,     // '='
@@ -13,5 +14,7 @@ enum class TokenType {
     STRING,     // "hi"
     IDENTIFIER,      // style, box, grid, dither
     TEXT,       // free text chunks (for paragraphs/headings)
+    HEADING_MARK,
     EOF_,
+
 };
