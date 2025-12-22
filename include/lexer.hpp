@@ -7,7 +7,7 @@
 
 class Lexer {
 public:
-    explicit Lexer(std::string source);
+    explicit Lexer(std::string& source);
 
     Token next();
     char peek();
@@ -16,6 +16,8 @@ public:
     void lexToken();
     void heading();
     std::vector<Token> lexTokens();
+    const std::string& getSource() const { return source_; }
+
 private:
     char advance();
     void skip_spaces();
@@ -23,7 +25,7 @@ private:
     Token ident_or_text();
     Token punctuation();
     bool isAtEnd();
-    const std::string source;
+    const std::string& source_;
     std::size_t start = 0;
     std::size_t current = 0;
     SourcePos start_pos{1, 1};

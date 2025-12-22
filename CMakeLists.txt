@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(typscii LANGUAGES CXX)
+project(terminyl LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,6 +12,7 @@ set(SOURCES
     src/main.cpp
     src/lexer.cpp
     src/token.cpp
+    src/parser.cpp
 )
 
 add_library(core STATIC
@@ -23,11 +24,11 @@ target_include_directories(core
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-add_executable(typscii
+add_executable(terminyl
     src/main.cpp
 )
 
-target_link_libraries(typscii
+target_link_libraries(terminyl
     PRIVATE core
 )
 
@@ -36,5 +37,5 @@ add_custom_target(clang-tidy
         -p ${CMAKE_BINARY_DIR}
         ${SOURCES}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running clang-tidy on typscii sources"
+    COMMENT "Running clang-tidy on terminyl sources"
 )

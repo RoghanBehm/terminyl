@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include <cassert>
 
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
@@ -36,21 +37,33 @@ Document::Heading Parser::heading() {
 }
 
 Document::Paragraph Parser::paragraph() {
-    Document::Paragraph paragraph;
-    paragraph.span.start = peek().span().start;
+    Document::Paragraph p;
+    p.span.start = peek().span().start;
 
     std::string text;
-    if (check(TokenType::TEXT)) {
+    bool consumed_any = false;
+
+    while (!isAtEnd() && !check(TokenType::NEWLINE)) {
         const Token& t = advance();
-        text = std::string(t.getLexeme());
+        text += std::string(t.getLexeme()); // string_view -> owned
+        consumed_any = true;
     }
 
     if (check(TokenType::NEWLINE)) advance();
 
-    paragraph.text = std::move(text);
-    paragraph.span.end = previous().span().end;
-    return paragraph;
+    p.text = std::move(text);
+
+    // safe end span
+    if (consumed_any) {
+        p.span.end = previous().span().end;
+    } else {
+        // shouldn't happen if caller skipped blanks, but safe anyway
+        p.span.end = peek().span().start;
+    }
+
+    return p;
 }
+
 
 Document::Block Parser::block() {
     if (check(TokenType::HEADING_MARK)) return heading();
@@ -59,7 +72,10 @@ Document::Block Parser::block() {
 
 const Token& Parser::peek() const { return tokens_.at(current); }
 
-const Token& Parser::previous() const { return tokens_.at(current - 1); }
+const Token& Parser::previous() const {
+    assert(current > 0);
+    return tokens_.at(current - 1); 
+}
 
 
 const Token& Parser::advance() {
@@ -86,4 +102,8 @@ bool Parser::match(TokenType type) {
 bool Parser::check(TokenType type) {
     if (isAtEnd()) return false;
     return peek().getType() == type;
+}
+
+bool Parser::isAtEnd() {
+    return peek().getType() == TokenType::EOF_;
 }

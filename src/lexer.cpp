@@ -2,14 +2,14 @@
 #include "token_type.hpp"
 #include <cstdio>
 
-
+Lexer::Lexer(std::string& source) : source_(source) {}
 
 bool Lexer::isAtEnd() {
-    return current >= source.length();
+    return current >= getSource().length();
 }
 
 char Lexer::advance() {
-    char c = source.at(current++);
+    char c = getSource().at(current++);
     if (c == '\n') {
         cur_pos.line++;
         cur_pos.column = 1;
@@ -21,7 +21,7 @@ char Lexer::advance() {
 
 
 void Lexer::addToken(TokenType type) {
-    std::string_view text{ source.data() + start, current - start };
+    std::string_view text{ getSource().data() + start, current - start };
     SourceSpan span{ start_pos, cur_pos };
     tokens.emplace_back(type, text, span);
 }
@@ -29,7 +29,7 @@ void Lexer::addToken(TokenType type) {
 
 char Lexer::peek() {
     if (isAtEnd()) return '\0';
-    return source.at(current);
+    return getSource().at(current);
 }
 
 
@@ -51,7 +51,7 @@ void Lexer::lexToken() {
 
 
 void Lexer::heading() {
-    while (!isAtEnd() && source.at(current) == '=') advance();
+    while (!isAtEnd() && getSource().at(current) == '=') advance();
     
     addToken(TokenType::HEADING_MARK);
     // can determine heading lvl with token.lexeme_.size();
