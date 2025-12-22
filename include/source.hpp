@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cstdint>
 struct SourcePos {
-    int line = 0;
-    int column = 0;
+    std::uint32_t line = 1;
+    std::uint32_t column = 1;
 };
 
 struct SourceSpan {

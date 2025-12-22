@@ -23,6 +23,7 @@ public:
     using Block = std::variant<Heading, Paragraph>;
 
     const std::vector<Block>& blocks() const { return blocks_; }
+    void add(Block b) { blocks_.push_back(std::move(b)); }
     static Document parse(std::istream& in);
 
 private:

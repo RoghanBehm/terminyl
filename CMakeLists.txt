@@ -10,6 +10,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCES
     src/main.cpp
+    src/lexer.cpp
+    src/token.cpp
 )
 
 add_library(core STATIC

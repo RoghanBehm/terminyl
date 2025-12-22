@@ -2,17 +2,34 @@
 #include "token_type.hpp"
 #include <cstdio>
 
+
+
 bool Lexer::isAtEnd() {
     return current >= source.length();
 }
 
 char Lexer::advance() {
-    return source.at(current++);
+    char c = source.at(current++);
+    if (c == '\n') {
+        cur_pos.line++;
+        cur_pos.column = 1;
+    } else {
+        cur_pos.column++;
+    }
+    return c;
 }
+
 
 void Lexer::addToken(TokenType type) {
     std::string_view text{ source.data() + start, current - start };
-    tokens.emplace_back(type, text, line);
+    SourceSpan span{ start_pos, cur_pos };
+    tokens.emplace_back(type, text, span);
+}
+
+
+char Lexer::peek() {
+    if (isAtEnd()) return '\0';
+    return source.at(current);
 }
 
 
@@ -26,7 +43,9 @@ void Lexer::lexToken() {
         case ']': addToken(RIGHT_SQ_BRACKET); break;
         case ',': addToken(COMMA); break;
         case '#': addToken(HASH); break;
+        case '\n': addToken(NEWLINE); break;
         case '=': heading(); break;
+        default: text(); break;
     }
 }
 
@@ -42,9 +61,19 @@ void Lexer::heading() {
 std::vector<Token> Lexer::lexTokens() {
     while (!isAtEnd()) {
         start = current;
+        start_pos = cur_pos;
         lexToken();
 
-        tokens.push_back(Token(TokenType::EOF_, "", line));
+        
     }
+    tokens.emplace_back(TokenType::EOF_, std::string_view{}, SourceSpan{cur_pos, cur_pos});
     return tokens;
+}
+
+void Lexer::text() {
+    while (peek() != '\n' && !isAtEnd()) {
+        advance();
+    }
+
+    addToken(TokenType::TEXT);
 }
