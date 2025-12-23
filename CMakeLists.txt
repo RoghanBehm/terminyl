@@ -13,6 +13,8 @@ set(SOURCES
     src/lexer.cpp
     src/token.cpp
     src/parser.cpp
+    src/io.cpp
+    src/emitter.cpp
 )
 
 add_library(core STATIC
