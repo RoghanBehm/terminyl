@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 
+Emitter::Emitter(Style s) : style_(std::move(s)) {}
+
 void Emitter::render(std::ostream& out, const Document& doc) const {
     for (const auto& blk : doc.blocks()) {
         std::visit([&](const auto& b) {

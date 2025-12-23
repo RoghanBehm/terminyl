@@ -20,12 +20,12 @@ int main(int argc, char **argv) {
         auto tokens = lex.lexTokens();
         auto doc = Parser(std::move(tokens)).parse();
         
-
+            
         std::ofstream out("out.txt", std::ios::binary);
         if (!out) throw std::runtime_error("Failed to open output: out.txt");
 
         Emitter emitter;
-        emitter.render(out, doc);
+        emitter.render(std::cout, doc);
     } catch (const std::exception& e) {
         std::cerr << e.what() << "\n";
         return 1;
