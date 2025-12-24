@@ -44,7 +44,10 @@ void Lexer::lexToken() {
         case ',': addToken(COMMA); break;
         case '#': addToken(HASH); break;
         case '\n': addToken(NEWLINE); break;
-        case '=': heading(); break;
+        case '=': 
+            if (start_pos.column == 1) heading();
+            else text();
+            break;
         default: text(); break;
     }
 }

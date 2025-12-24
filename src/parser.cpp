@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include "token_type.hpp"
 #include <cassert>
 
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
@@ -43,21 +44,32 @@ Document::Paragraph Parser::paragraph() {
     std::string text;
     bool consumed_any = false;
 
-    while (!isAtEnd() && !check(TokenType::NEWLINE)) {
+    while (!isAtEnd()) {
+        if (check(TokenType::NEWLINE)) {
+            // End paragraph on double newline or newline + EOF
+            if (current + 1 < tokens_.size() &&
+            tokens_[current + 1].getType() == TokenType::NEWLINE) { 
+                break; 
+            
+            }
+            // Treat single newline as space
+            advance();
+            if (!text.empty() && text.back() != ' ') text.push_back(' ');
+            continue;
+        }
+
         const Token& t = advance();
-        text += std::string(t.getLexeme()); // string_view -> owned
+        text += std::string(t.getLexeme());
         consumed_any = true;
     }
 
-    if (check(TokenType::NEWLINE)) advance();
+    while (match(TokenType::NEWLINE)) {}
 
     p.text = std::move(text);
 
-    // safe end span
     if (consumed_any) {
         p.span.end = previous().span().end;
     } else {
-        // shouldn't happen if caller skipped blanks, but safe anyway
         p.span.end = peek().span().start;
     }
 
