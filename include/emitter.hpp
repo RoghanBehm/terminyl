@@ -17,4 +17,7 @@ public:
 private:
     static std::string box_heading(std::string_view text, std::size_t pad = 1);
     Style style_;
+    void wrap_paragraph(std::ostream& out, std::string_view text, std::size_t width, std::size_t indent = 0) const;
+    void skip_whitespace(std::size_t& i, std::string_view text) const;
+    void skip_non_whitespace(std::size_t& i, std::string_view text) const;
 };
