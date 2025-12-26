@@ -33,26 +33,23 @@ std::string Emitter::render_to_string(const Document &doc) const {
 std::string Emitter::box_heading(std::string_view s, std::size_t pad) {
   const std::size_t w = s.size();
   const std::size_t inner = w + 2 * pad;
-
+  
+  std::string horizontal_line;
+  horizontal_line.reserve(inner + 2);
+  for (std::size_t i = 0; i < inner + 2; ++i) {
+    horizontal_line += "─";
+  }
+  
   std::string out;
-  out.reserve((inner + 4) * 3);
-
-  out += '+';
-  out += std::string(inner + 2, '-');
-  out += "+\n";
-
-  out += '|';
-  out += std::string(pad + 1, ' ');
-  out += std::string(s);
-  out += std::string(pad + 1, ' ');
-  out += "|\n";
-
-  out += '+';
-  out += std::string(inner + 2, '-');
-  out += "+\n";
-
+  out.reserve((inner + 4) * 3 * 3);
+  
+  out += "┌" + horizontal_line + "┐\n";
+  out += "│" + std::string(pad + 1, ' ') + std::string(s) + std::string(pad + 1, ' ') + "│\n";
+  out += "└" + horizontal_line + "┘\n";
+  
   return out;
 }
+
 void Emitter::flatten_runs(const std::vector<Document::InlinePtr> &inlines,
                            StyleState current_style,
                            std::vector<Run> &out) const {
