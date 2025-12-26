@@ -7,9 +7,9 @@
 
 
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     if (argc != 2) {
-        std::cout << "Usage: terminyl [script]\n";
+        std::cout << "Usage: terminyl [file]\n";
         return 64;
     }
 

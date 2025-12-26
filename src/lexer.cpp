@@ -93,11 +93,11 @@ std::vector<Token> Lexer::lexTokens() {
   
   tokens.emplace_back(TokenType::EOF_, std::string_view{},
                       SourceSpan{cur_pos, cur_pos});
-    /* DEBUG
+    /* DEBUG*/
   for (auto const &t : tokens) {
     std::cout << (int)t.getType() << " '" << t.getLexeme() << "'\n";
   }
-    */
+
   return tokens;
 }
 
