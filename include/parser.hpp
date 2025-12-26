@@ -1,10 +1,11 @@
 #include "token.hpp"
 #include "document.hpp"
-
+#include "text_accumulator.hpp"
 class Parser {
 public:
     Parser(std::vector<Token> tokens);
     Document parse();
+    
 private:
     const std::vector<Token> tokens_;
     void skipBlanks();
@@ -17,7 +18,7 @@ private:
     const Token& previous() const;
     bool isAtEnd();
     const Token& advance();
-
-    
+    bool handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any);
+    bool handleEmphasis(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any);
     Document::Block block();
 };

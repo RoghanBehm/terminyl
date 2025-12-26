@@ -4,13 +4,15 @@
 
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
+
+
 Document Parser::parse() {
   Document doc;
 
   while (!isAtEnd()) {
     skipBlanks();
     if (isAtEnd()) break;
-    
+
     doc.add(block());
   }
   return doc;
@@ -36,106 +38,95 @@ Document::Heading Parser::heading() {
   heading.span.end = previous().span().end;
   return heading;
 }
-
 Document::Paragraph Parser::paragraph() {
-
-  Document::Paragraph p;
-  p.span.start = peek().span().start;
-
-  std::string text;
-  SourcePos text_start{};
-  bool text_has_start = false;
-  bool consumed_any = false;
-
-  auto flush_text = [&]() {
-    if (text.empty())
-      return;
-    SourceSpan sp;
-    sp.start = text_start;
-    sp.end =
-        previous().span().end; // last consumed token that contributed to `text`
-    p.inlines.push_back(Document::Inline::make_text(std::move(text), sp));
-    text.clear();
-    text_has_start = false;
-  };
-
-  while (!isAtEnd()) {
-    if (check(TokenType::NEWLINE)) {
-      // End paragraph on double newline or newline + EOF
-      if (current + 1 < tokens_.size() &&
-          tokens_[current + 1].getType() == TokenType::NEWLINE) {
-        break;
-      }
-      // Treat single newline as space
-      const Token &nl = advance();
-      if (text.empty()) {
-        text_start = nl.span().start;
-        text_has_start = true;
-      }
-      if (!text.empty() && text.back() != ' ')
-        text.push_back(' ');
-      consumed_any = true;
-      continue;
-    }
-
-    if (check(TokenType::STAR)) {
-
-      flush_text();
-
-      const Token &openStar = advance();
-      consumed_any = true;
-
-      std::string emph_acc;
-      while (!isAtEnd() && !check(TokenType::STAR) &&
-             !check(TokenType::NEWLINE)) {
-        emph_acc += std::string(advance().getLexeme());
+    Document::Paragraph para;
+    para.span.start = peek().span().start;
+    
+    TextAccumulator text;
+    bool consumed_any = false;
+    
+    auto flush_text = [&]() {
+        if (!text.isEmpty()) {
+            para.inlines.push_back(text.flush(previous().span().end));
+        }
+    };
+    
+    while (!isAtEnd()) {
+        if (handleNewlineInParagraph(text, consumed_any)) {
+            break; // Double newline ends paragraph
+        }
+        
+        if (check(TokenType::STAR)) {
+        flush_text(); 
+        handleEmphasis(para, text, consumed_any);
+            continue;
+        }
+        
+        // Regular text token
+        const Token &token = advance();
+        text.append(token.getLexeme(), token.span().start);
         consumed_any = true;
-      }
+    }
+    
+    flush_text();
+    
+    // Skip trailing newlines
+    while (match(TokenType::NEWLINE)) {}
+    
+    para.span.end = consumed_any ? previous().span().end : peek().span().start;
+    return para;
+}
 
-      if (check(TokenType::STAR)) {
+// Returns true if paragraph should end
+bool Parser::handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any) {
+    if (!check(TokenType::NEWLINE)) {
+        return false;
+    }
+    
+    // Check for double newline (paragraph break)
+    if (current + 1 < tokens_.size() &&
+        tokens_[current + 1].getType() == TokenType::NEWLINE) {
+        return true;
+    }
+    
+    // Single newline becomes a space
+    const Token &newline = advance();
+    if (text.isEmpty()) {
+        text.append(" ", newline.span().start);
+    } else {
+        text.appendSpace();
+    }
+    consumed_any = true;
+    return false;
+}
+
+// Returns true if emphasis was successfully parsed
+bool Parser::handleEmphasis(Document::Paragraph& para, TextAccumulator& text, 
+                           bool& consumed_any) {
+    const Token &openStar = advance();
+    consumed_any = true;
+    
+    std::string emph_text;
+    while (!isAtEnd() && !check(TokenType::STAR) && !check(TokenType::NEWLINE)) {
+        emph_text += std::string(advance().getLexeme());
+        consumed_any = true;
+    }
+    
+    if (check(TokenType::STAR)) {
         const Token &closeStar = advance();
         consumed_any = true;
-
-        SourceSpan emphSpan;
-        emphSpan.start = openStar.span().start;
-        emphSpan.end = closeStar.span().end;
-
-        p.inlines.push_back(Document::Inline::make_emph(
-            {Document::Inline::make_text(std::move(emph_acc), emphSpan)},
+        
+        SourceSpan emphSpan{openStar.span().start, closeStar.span().end};
+        para.inlines.push_back(Document::Inline::make_emph(
+            {Document::Inline::make_text(std::move(emph_text), emphSpan)},
             emphSpan));
-        continue;
-      } else {
-        if (!text_has_start) {
-          text_start = openStar.span().start;
-          text_has_start = true;
-        }
-        text += "*";
-        text += emph_acc;
-        continue;
-      }
+        return true;
     }
-
-    const Token &t = advance();
-    if (!text_has_start) {
-      text_start = t.span().start;
-      text_has_start = true;
-    }
-    text += std::string(t.getLexeme());
-    consumed_any = true;
-  }
-
-  flush_text();
-
-  while (match(TokenType::NEWLINE)) {
-  }
-
-  if (consumed_any) {
-    p.span.end = previous().span().end;
-  } else {
-    p.span.end = peek().span().start;
-  }
-
-  return p;
+    
+    // Unclosed emphasis - treat as literal text
+    text.append("*", openStar.span().start);
+    text.append(emph_text, openStar.span().start);
+    return false;
 }
 
 Document::Block Parser::block() {
