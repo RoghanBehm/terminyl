@@ -5,7 +5,6 @@
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
 
-
 Document Parser::parse() {
   Document doc;
 
@@ -53,12 +52,12 @@ Document::Paragraph Parser::paragraph() {
     
     while (!isAtEnd()) {
         if (handleNewlineInParagraph(text, consumed_any)) {
-            break; // Double newline ends paragraph
+            break;
         }
         
         if (check(TokenType::STAR)) {
         flush_text(); 
-        handleEmphasis(para, text, consumed_any);
+        handleBold(para, text, consumed_any);
             continue;
         }
         
@@ -83,7 +82,7 @@ bool Parser::handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any)
         return false;
     }
     
-    // Check for double newline (paragraph break)
+    // Double newline ends paragraph
     if (current + 1 < tokens_.size() &&
         tokens_[current + 1].getType() == TokenType::NEWLINE) {
         return true;
@@ -100,15 +99,15 @@ bool Parser::handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any)
     return false;
 }
 
-// Returns true if emphasis was successfully parsed
-bool Parser::handleEmphasis(Document::Paragraph& para, TextAccumulator& text, 
+// Returns true if boldasis was successfully parsed
+bool Parser::handleBold(Document::Paragraph& para, TextAccumulator& text, 
                            bool& consumed_any) {
     const Token &openStar = advance();
     consumed_any = true;
     
-    std::string emph_text;
+    std::string bold_text;
     while (!isAtEnd() && !check(TokenType::STAR) && !check(TokenType::NEWLINE)) {
-        emph_text += std::string(advance().getLexeme());
+        bold_text += std::string(advance().getLexeme());
         consumed_any = true;
     }
     
@@ -116,16 +115,15 @@ bool Parser::handleEmphasis(Document::Paragraph& para, TextAccumulator& text,
         const Token &closeStar = advance();
         consumed_any = true;
         
-        SourceSpan emphSpan{openStar.span().start, closeStar.span().end};
-        para.inlines.push_back(Document::Inline::make_emph(
-            {Document::Inline::make_text(std::move(emph_text), emphSpan)},
-            emphSpan));
+        SourceSpan boldSpan{openStar.span().start, closeStar.span().end};
+        para.inlines.push_back(Document::Inline::make_bold(
+            {Document::Inline::make_text(std::move(bold_text), boldSpan)},
+            boldSpan));
         return true;
     }
     
-    // Unclosed emphasis - treat as literal text
     text.append("*", openStar.span().start);
-    text.append(emph_text, openStar.span().start);
+    text.append(bold_text, openStar.span().start);
     return false;
 }
 

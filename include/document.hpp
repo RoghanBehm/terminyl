@@ -16,18 +16,18 @@ public:
       std::string text;
     };
 
-    struct Emph {
+    struct Bold {
       std::vector<Ptr> children;
     };
 
-    std::variant<Text, Emph> node;
+    std::variant<Text, Bold> node;
     SourceSpan span{};
 
     Inline(Text t, SourceSpan sp) : node(std::move(t)), span(sp) {}
-    Inline(Emph e, SourceSpan sp) : node(std::move(e)), span(sp) {}
+    Inline(Bold e, SourceSpan sp) : node(std::move(e)), span(sp) {}
 
     static Ptr make_text(std::string s, SourceSpan sp);
-    static Ptr make_emph(std::vector<Ptr> children, SourceSpan sp);
+    static Ptr make_bold(std::vector<Ptr> children, SourceSpan sp);
   };
 
   using InlinePtr = Inline::Ptr;

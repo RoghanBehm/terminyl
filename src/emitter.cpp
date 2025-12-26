@@ -7,6 +7,7 @@ Emitter::Emitter(Style s) : style_(std::move(s)) {}
 
 void Emitter::render(std::ostream &out, const Document &doc) const {
   for (const auto &blk : doc.blocks()) {
+    // Type-based dispatch
     std::visit(
         [&](const auto &b) {
           using T = std::remove_cvref_t<decltype(b)>;
@@ -51,28 +52,19 @@ std::string Emitter::box_heading(std::string_view s, std::size_t pad) {
 
   return out;
 }
-
-void Emitter::skip_whitespace(std::size_t &i, std::string_view text) const {
-  while (i < text.size() && std::isspace(static_cast<unsigned char>(text[i])))
-    ++i;
-}
-
-void Emitter::skip_non_whitespace(std::size_t &i, std::string_view text) const {
-  while (i < text.size() && !std::isspace(static_cast<unsigned char>(text[i])))
-    ++i;
-}
-
 void Emitter::flatten_runs(const std::vector<Document::InlinePtr>& inlines,
-                           bool emph,
+                           StyleState current_style,
                            std::vector<Run>& out) const {
     for (auto const& p : inlines) {
         std::visit([&](auto const& node) {
             using T = std::remove_cvref_t<decltype(node)>;
             if constexpr (std::is_same_v<T, Document::Inline::Text>) {
-                out.push_back(Run{ node.text, emph });
-            } else if constexpr (std::is_same_v<T, Document::Inline::Emph>) {
-                flatten_runs(node.children, true, out);
-            }
+                out.push_back(Run{ node.text, current_style });
+            } else if constexpr (std::is_same_v<T, Document::Inline::Bold>) {
+                StyleState child_style = current_style;
+                child_style.bold = true;
+                flatten_runs(node.children, child_style, out);
+            } 
         }, p->node);
     }
 }
@@ -80,73 +72,63 @@ void Emitter::flatten_runs(const std::vector<Document::InlinePtr>& inlines,
 void Emitter::wrap_paragraph(std::ostream &out,
                              const std::vector<Document::InlinePtr> &inlines,
                              std::size_t width, std::size_t indent) const {
-  std::size_t line_len = 0;
-
-  // add n many blank chars, where n is the indent var
-  auto write_indent = [&]() {
-    out << std::string(indent, ' ');
-    line_len = indent;
-  };
-
-  write_indent();
-
-  std::vector<Run> runs;
-  flatten_runs(inlines, false, runs);
-
-  auto ansi_set_emph = [&](bool on) { out << (on ? "\x1b[1m" : "\x1b[0m"); };
-
-  bool emph_on = false;
-
-  for (auto const &r : runs) {
-    std::string_view s = r.text;
-    std::size_t i = 0;
-
-    while (i < s.size()) {
-
-      // skip whitespace
-      while (i < s.size() && std::isspace((unsigned char)s[i]))
-        ++i;
-      if (i >= s.size())
-        break;
-
-      std::size_t start = i;
-      while (i < s.size() && !std::isspace((unsigned char)s[i]))
-        ++i;
-      std::string_view word = s.substr(start, i - start);
-
-      // wrapping (visible chars only)
-      auto word_len = word.size();
-
-      if (line_len == indent) {
-        if (emph_on != r.emph) {
-          ansi_set_emph(r.emph);
-          emph_on = r.emph;
+    std::size_t line_len = 0;
+    auto write_indent = [&]() {
+        out << std::string(indent, ' ');
+        line_len = indent;
+    };
+    
+    write_indent();
+    
+    std::vector<Run> runs;
+    flatten_runs(inlines, StyleState{}, runs);
+    
+    StyleState current_state;
+    
+    for (auto const &r : runs) {
+        std::string_view s = r.text;
+        std::size_t i = 0;
+        
+        while (i < s.size()) {
+            // skip whitespace
+            while (i < s.size() && std::isspace((unsigned char)s[i]))
+                ++i;
+            if (i >= s.size())
+                break;
+            
+            // extract word
+            std::size_t start = i;
+            while (i < s.size() && !std::isspace((unsigned char)s[i]))
+                ++i;
+            std::string_view word = s.substr(start, i - start);
+            auto word_len = word.size();
+            
+            // Check if wrap necessary
+            bool needs_wrap = (line_len != indent) && 
+                             (line_len + 1 + word_len > width);
+            
+            if (needs_wrap) {
+                out << '\n';
+                write_indent();
+            } else if (line_len != indent) {
+                out << ' ';
+                line_len += 1;
+            }
+            
+            // Apply style if changed
+            if (current_state != r.style) {
+                out << r.style.to_ansi();
+                current_state = r.style;
+            }
+            
+            out << word;
+            line_len += word_len;
         }
-        out << word;
-        line_len += word_len;
-      } else if (line_len + 1 + word_len <= width) {
-        out << ' ';
-        line_len += 1;
-        if (emph_on != r.emph) {
-          ansi_set_emph(r.emph);
-          emph_on = r.emph;
-        }
-        out << word;
-        line_len += word_len;
-      } else {
-        out << '\n';
-        write_indent();
-        if (emph_on != r.emph) {
-          ansi_set_emph(r.emph);
-          emph_on = r.emph;
-        }
-        out << word;
-        line_len += word_len;
-      }
     }
-  }
-
-  if (emph_on)
-    ansi_set_emph(false); // reset
-  out << '\n';
+    
+    // Reset styles at end
+    if (current_state != StyleState{}) {
+        out << "\x1b[0m";
+    }
+    out << '\n';
 }

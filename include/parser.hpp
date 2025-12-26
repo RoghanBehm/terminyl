@@ -19,6 +19,6 @@ private:
     bool isAtEnd();
     const Token& advance();
     bool handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any);
-    bool handleEmphasis(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any);
+    bool handleBold(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any);
     Document::Block block();
 };
