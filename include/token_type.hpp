@@ -15,7 +15,9 @@ enum class TokenType {
     IDENTIFIER,      // style, box, grid, dither
     TEXT,       // free text chunks (for paragraphs/headings)
     HEADING_MARK,
-    STAR,
+    STAR, // '*'
+    BACKTICK, // '`'
+    UNDERSCORE, // '_'
     EOF_,
 
 };

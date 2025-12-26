@@ -20,15 +20,30 @@ public:
       std::vector<Ptr> children;
     };
 
-    std::variant<Text, Bold> node;
+    struct Italic {
+      std::vector<Ptr> children;
+    };
+
+    struct Code {
+      std::string text;
+    };
+
+
+    std::variant<Text, Bold, Italic, Code> node;
     SourceSpan span{};
 
     Inline(Text t, SourceSpan sp) : node(std::move(t)), span(sp) {}
     Inline(Bold e, SourceSpan sp) : node(std::move(e)), span(sp) {}
+    Inline(Italic i, SourceSpan sp) : node(std::move(i)), span(sp) {}
+    Inline(Code c, SourceSpan sp) : node(std::move(c)), span(sp) {}
 
     static Ptr make_text(std::string s, SourceSpan sp);
     static Ptr make_bold(std::vector<Ptr> children, SourceSpan sp);
+    static Ptr make_italic(std::vector<Ptr> children, SourceSpan sp);
+    static Ptr make_code(std::string s, SourceSpan sp);
   };
+
+
 
   using InlinePtr = Inline::Ptr;
   struct Heading {

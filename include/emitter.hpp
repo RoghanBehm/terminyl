@@ -7,7 +7,7 @@ struct StyleState {
     bool italic = false;
     bool code = false;
     
-    bool operator==(const StyleState& other) const = default;
+    auto operator<=>(const StyleState&) const = default;
     
     std::string to_ansi() const {
         if (code) return "\x1b[7m";
@@ -15,7 +15,7 @@ struct StyleState {
         std::string result;
         if (bold && italic) return "\x1b[1;3m";
         if (bold) return "\x1b[1m";
-        if (italic) return "\x1b";
+        if (italic) return "\x1b[3m";
         return "\x1b[0m";
     }
 };

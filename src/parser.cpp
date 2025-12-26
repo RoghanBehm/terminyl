@@ -37,6 +37,7 @@ Document::Heading Parser::heading() {
   heading.span.end = previous().span().end;
   return heading;
 }
+
 Document::Paragraph Parser::paragraph() {
     Document::Paragraph para;
     para.span.start = peek().span().start;
@@ -58,6 +59,18 @@ Document::Paragraph Parser::paragraph() {
         if (check(TokenType::STAR)) {
         flush_text(); 
         handleBold(para, text, consumed_any);
+            continue;
+        } 
+
+        if (check(TokenType::UNDERSCORE)) {
+            flush_text();
+            handleItalic(para, text, consumed_any);
+            continue;
+        }
+
+        if (check(TokenType::BACKTICK)) {
+            flush_text();
+            handleCode(para, text, consumed_any);
             continue;
         }
         
@@ -99,33 +112,47 @@ bool Parser::handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any)
     return false;
 }
 
-// Returns true if boldasis was successfully parsed
-bool Parser::handleBold(Document::Paragraph& para, TextAccumulator& text, 
-                           bool& consumed_any) {
-    const Token &openStar = advance();
-    consumed_any = true;
-    
-    std::string bold_text;
-    while (!isAtEnd() && !check(TokenType::STAR) && !check(TokenType::NEWLINE)) {
-        bold_text += std::string(advance().getLexeme());
-        consumed_any = true;
-    }
-    
-    if (check(TokenType::STAR)) {
-        const Token &closeStar = advance();
-        consumed_any = true;
-        
-        SourceSpan boldSpan{openStar.span().start, closeStar.span().end};
-        para.inlines.push_back(Document::Inline::make_bold(
-            {Document::Inline::make_text(std::move(bold_text), boldSpan)},
-            boldSpan));
-        return true;
-    }
-    
-    text.append("*", openStar.span().start);
-    text.append(bold_text, openStar.span().start);
-    return false;
+// Returns true if bold was successfully parsed
+bool Parser::handleBold(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any) {
+    return handleDelimitedInline(
+        para, text, consumed_any,
+        TokenType::STAR,
+        "*",
+        [](std::string content, SourceSpan span) {
+            return Document::Inline::make_bold(
+                {Document::Inline::make_text(std::move(content), span)},
+                span
+            );
+        }
+    );
 }
+
+bool Parser::handleCode(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any) {
+    return handleDelimitedInline(
+        para, text, consumed_any,
+        TokenType::BACKTICK,
+        "`",
+        [](std::string content, SourceSpan span) {
+            return Document::Inline::make_code(std::move(content), span);
+        }
+    );
+}
+
+bool Parser::handleItalic(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any) {
+    return handleDelimitedInline(
+        para, text, consumed_any,
+        TokenType::UNDERSCORE,
+        "_",
+        [](std::string content, SourceSpan span) {
+            return Document::Inline::make_italic(
+                {Document::Inline::make_text(std::move(content), span)},
+                span
+            );
+        }
+    );
+}
+
+
 
 Document::Block Parser::block() {
   if (check(TokenType::HEADING_MARK))

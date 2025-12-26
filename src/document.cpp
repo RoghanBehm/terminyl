@@ -7,3 +7,11 @@ Document::Inline::Ptr Document::Inline::make_text(std::string s, SourceSpan sp) 
 Document::Inline::Ptr Document::Inline::make_bold(std::vector<Ptr> children, SourceSpan sp) {
     return std::make_shared<Inline>(Bold{std::move(children)}, sp);
 }
+
+Document::Inline::Ptr Document::Inline::make_code(std::string s, SourceSpan sp) {
+    return std::make_shared<Inline>(Code{std::move(s)}, sp);
+}
+
+Document::Inline::Ptr Document::Inline::make_italic(std::vector<Ptr> children, SourceSpan sp) {
+    return std::make_shared<Inline>(Italic{std::move(children)}, sp);
+}

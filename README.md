@@ -1,9 +1,6 @@
 # terminyl
 
-WIP terminal-native document typesetter with Typst-inspired syntax.
-
-Structured documents are rendered using ASCII and Unicode glyphs for display in plain text terminals.
-
+Terminyl is a WIP terminal-first typesetting language and renderer that compiles lightweight markup into nicely laid-out ANSI-styled output.
 
 ## Example
 

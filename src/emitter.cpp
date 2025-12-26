@@ -64,7 +64,15 @@ void Emitter::flatten_runs(const std::vector<Document::InlinePtr>& inlines,
                 StyleState child_style = current_style;
                 child_style.bold = true;
                 flatten_runs(node.children, child_style, out);
-            } 
+            } else if constexpr (std::is_same_v<T, Document::Inline::Italic>) {
+              StyleState child_style = current_style;
+              child_style.italic = true;
+              flatten_runs(node.children, child_style, out);
+            } else if constexpr (std::is_same_v<T, Document::Inline::Code>) {
+              StyleState child_style = current_style;
+              child_style.code = true;
+              out.push_back(Run{ node.text, child_style });
+            }
         }, p->node);
     }
 }
