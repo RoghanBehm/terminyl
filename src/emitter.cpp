@@ -13,7 +13,7 @@ void Emitter::render(std::ostream &out, const Document &doc) const {
           using T = std::remove_cvref_t<decltype(b)>;
 
           if constexpr (std::is_same_v<T, Document::Heading>) {
-            out << box_heading(b.text) << "\n";
+            out << box_heading(b.text, b.level) << "\n";
           } else if constexpr (std::is_same_v<T, Document::Paragraph>) {
             wrap_paragraph(out, b.inlines, style_.width,
                            style_.paragraph_indent);
@@ -30,22 +30,46 @@ std::string Emitter::render_to_string(const Document &doc) const {
   return out.str();
 }
 
-std::string Emitter::box_heading(std::string_view s, std::size_t pad) {
+std::string Emitter::box_heading(std::string_view s, int level, std::size_t pad) const {
   const std::size_t w = s.size();
   const std::size_t inner = w + 2 * pad;
   
+  // Box style chosen based on heading level
+  struct BoxChars {
+    const char* top_left;
+    const char* top_right;
+    const char* bottom_left;
+    const char* bottom_right;
+    const char* horizontal;
+    const char* vertical;
+  };
+  
+  BoxChars chars;
+  switch (level) {
+    case 1:  // h1 ('=')
+      chars = {"╔", "╗", "╚", "╝", "═", "║"};
+      break;
+    case 2:  // h2 ('==')
+      chars = {"┏", "┓", "┗", "┛", "━", "┃"};
+      break;
+    case 3:  // h3 ('===')
+      chars = {"┌", "┐", "└", "┘", "─", "│"};
+      break;
+    default:  // >= h4 ('====')
+      chars = {"╭", "╮", "╰", "╯", "─", "│"};
+      break;
+  }
+  
   std::string horizontal_line;
-  horizontal_line.reserve(inner + 2);
   for (std::size_t i = 0; i < inner + 2; ++i) {
-    horizontal_line += "─";
+    horizontal_line += chars.horizontal;
   }
   
   std::string out;
-  out.reserve((inner + 4) * 3 * 3);
-  
-  out += "┌" + horizontal_line + "┐\n";
-  out += "│" + std::string(pad + 1, ' ') + std::string(s) + std::string(pad + 1, ' ') + "│\n";
-  out += "└" + horizontal_line + "┘\n";
+  out += chars.top_left + horizontal_line + chars.top_right + "\n";
+  out += std::string(chars.vertical) + std::string(pad + 1, ' ') + 
+         std::string(s) + std::string(pad + 1, ' ') + chars.vertical + "\n";
+  out += chars.bottom_left + horizontal_line + chars.bottom_right + "\n";
   
   return out;
 }
@@ -93,9 +117,12 @@ void Emitter::wrap_paragraph(std::ostream &out,
 
   StyleState current_state;
 
-  for (auto const &r : runs) {
+  for (size_t run_idx = 0; run_idx < runs.size(); ++run_idx) {
+    auto const &r = runs[run_idx];
     std::string_view s = r.text;
     std::size_t i = 0;
+    
+    bool first_word_in_run = true;
 
     while (i < s.size()) {
       // skip whitespace
@@ -119,12 +146,14 @@ void Emitter::wrap_paragraph(std::ostream &out,
         out << '\n';
         write_indent();
       } else if (line_len != indent) {
-        if (current_state != StyleState{}) {
-          out << "\x1b[0m"; // Reset to default
-          current_state = StyleState{};
+        if (first_word_in_run && current_state != r.style && current_state != StyleState{}) {
+          out << "\x1b[0m"; 
+          out << ' ';
+          line_len += 1;
+        } else {
+          out << ' ';
+          line_len += 1;
         }
-        out << ' ';
-        line_len += 1;
       }
 
       // Apply style if changed
@@ -135,10 +164,11 @@ void Emitter::wrap_paragraph(std::ostream &out,
 
       out << word;
       line_len += word_len;
+      first_word_in_run = false;
     }
   }
 
-  // Reset styles at end
+  // Reset styles
   if (current_state != StyleState{}) {
     out << "\x1b[0m";
   }

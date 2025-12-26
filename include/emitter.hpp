@@ -37,7 +37,7 @@ public:
     std::string render_to_string(const Document& doc) const;
 
 private:
-    static std::string box_heading(std::string_view text, std::size_t pad = 1);
+    std::string box_heading(std::string_view s, int level, std::size_t pad = 1) const;
     Style style_;
     void wrap_paragraph(std::ostream& out, const std::vector<Document::InlinePtr>& inlines, std::size_t width, std::size_t indent = 0) const;
     void skip_whitespace(std::size_t& i, std::string_view text) const;
