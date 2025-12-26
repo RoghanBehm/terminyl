@@ -15,6 +15,7 @@ set(SOURCES
     src/parser.cpp
     src/io.cpp
     src/emitter.cpp
+    src/document.cpp
 )
 
 add_library(core STATIC

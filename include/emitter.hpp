@@ -7,6 +7,11 @@ struct Style {
     std::size_t paragraph_indent = 0;
 };
 
+struct Run {
+    std::string_view text;
+    bool emph;
+};
+
 class Emitter {
 public:
     explicit Emitter(Style s = {});
@@ -17,7 +22,8 @@ public:
 private:
     static std::string box_heading(std::string_view text, std::size_t pad = 1);
     Style style_;
-    void wrap_paragraph(std::ostream& out, std::string_view text, std::size_t width, std::size_t indent = 0) const;
+    void wrap_paragraph(std::ostream& out, const std::vector<Document::InlinePtr>& inlines, std::size_t width, std::size_t indent = 0) const;
     void skip_whitespace(std::size_t& i, std::string_view text) const;
     void skip_non_whitespace(std::size_t& i, std::string_view text) const;
+    void flatten_runs(const std::vector<Document::InlinePtr>& inlines, bool emph, std::vector<Run>& out) const;
 };

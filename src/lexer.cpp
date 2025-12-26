@@ -1,6 +1,7 @@
 #include "lexer.hpp"
 #include "token_type.hpp"
 #include <cstdio>
+#include <iostream>
 
 Lexer::Lexer(std::string& source) : source_(source) {}
 
@@ -43,6 +44,7 @@ void Lexer::lexToken() {
         case ']': addToken(RIGHT_SQ_BRACKET); break;
         case ',': addToken(COMMA); break;
         case '#': addToken(HASH); break;
+        case '*': addToken(STAR); break;
         case '\n': addToken(NEWLINE); break;
         case '=': 
             if (start_pos.column == 1) heading();
@@ -66,15 +68,20 @@ std::vector<Token> Lexer::lexTokens() {
         start = current;
         start_pos = cur_pos;
         lexToken();
+        
 
         
     }
     tokens.emplace_back(TokenType::EOF_, std::string_view{}, SourceSpan{cur_pos, cur_pos});
+    for (auto const& t : tokens) {
+  std::cout << (int)t.getType() << " '" << t.getLexeme() << "'\n";
+}
+
     return tokens;
 }
 
 void Lexer::text() {
-    while (peek() != '\n' && !isAtEnd()) {
+    while (peek() != '\n' && !isAtEnd() && peek() != '*') {
         advance();
     }
 
