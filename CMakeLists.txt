@@ -42,3 +42,5 @@ add_custom_target(clang-tidy
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Running clang-tidy on terminyl sources"
 )
+
+install(TARGETS terminyl RUNTIME DESTINATION bin)
