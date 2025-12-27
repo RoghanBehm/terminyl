@@ -38,54 +38,17 @@ Document::Heading Parser::heading() {
   return heading;
 }
 
+
 Document::Paragraph Parser::paragraph() {
     Document::Paragraph para;
     para.span.start = peek().span().start;
     
-    TextAccumulator text;
-    bool consumed_any = false;
-    
-    auto flush_text = [&]() {
-        if (!text.isEmpty()) {
-            para.inlines.push_back(text.flush(previous().span().end));
-        }
-    };
-    
-    while (!isAtEnd()) {
-        if (handleNewlineInParagraph(text, consumed_any)) {
-            break;
-        }
-        
-        if (check(TokenType::STAR)) {
-        flush_text(); 
-        handleBold(para, text, consumed_any);
-            continue;
-        } 
-
-        if (check(TokenType::UNDERSCORE)) {
-            flush_text();
-            handleItalic(para, text, consumed_any);
-            continue;
-        }
-
-        if (check(TokenType::BACKTICK)) {
-            flush_text();
-            handleCode(para, text, consumed_any);
-            continue;
-        }
-        
-        // Regular text token
-        const Token &token = advance();
-        text.append(token.getLexeme(), token.span().start);
-        consumed_any = true;
-    }
-    
-    flush_text();
+    para.inlines = parseInlines(TokenType::NEWLINE);
     
     // Skip trailing newlines
     while (match(TokenType::NEWLINE)) {}
     
-    para.span.end = consumed_any ? previous().span().end : peek().span().start;
+    para.span.end = previous().span().end;
     return para;
 }
 
@@ -111,48 +74,109 @@ bool Parser::handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any)
     consumed_any = true;
     return false;
 }
-
-// Returns true if bold was successfully parsed
-bool Parser::handleBold(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any) {
-    return handleDelimitedInline(
-        para, text, consumed_any,
-        TokenType::STAR,
-        "*",
-        [](std::string content, SourceSpan span) {
-            return Document::Inline::make_bold(
-                {Document::Inline::make_text(std::move(content), span)},
-                span
-            );
+std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
+    std::vector<Document::InlinePtr> inlines;
+    TextAccumulator text;
+    
+    auto flush_text = [&]() {
+        if (!text.isEmpty()) {
+            inlines.push_back(text.flush(previous().span().end));
         }
-    );
+    };
+    
+    while (!isAtEnd() && !check(endToken)) {
+        if (check(TokenType::NEWLINE)) {
+            // Handle double newline ending paragraph
+            if (endToken == TokenType::NEWLINE && 
+                current + 1 < tokens_.size() &&
+                tokens_[current + 1].getType() == TokenType::NEWLINE) {
+                break;
+            }
+            // Single newline becomes a space
+            advance();
+            text.appendSpace();
+            continue;
+        }
+        
+        if (check(TokenType::STAR)) {
+            flush_text();
+            inlines.push_back(parseBold());
+            continue;
+        }
+        
+        if (check(TokenType::UNDERSCORE)) {
+            flush_text();
+            inlines.push_back(parseItalic());
+            continue;
+        }
+        
+        if (check(TokenType::BACKTICK)) {
+            flush_text();
+            inlines.push_back(parseCode());
+            continue;
+        }
+        
+        // Regular text
+        const Token &token = advance();
+        text.append(token.getLexeme(), token.span().start);
+    }
+    
+    flush_text();
+    return inlines;
 }
 
-bool Parser::handleCode(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any) {
-    return handleDelimitedInline(
-        para, text, consumed_any,
-        TokenType::BACKTICK,
-        "`",
-        [](std::string content, SourceSpan span) {
-            return Document::Inline::make_code(std::move(content), span);
-        }
-    );
+Document::InlinePtr Parser::parseBold() {
+    SourceSpan span;
+    span.start = peek().span().start;
+    
+    advance(); // consume opening *
+    
+    // Recursively parse content until closing *
+    auto children = parseInlines(TokenType::STAR);
+    
+    if (check(TokenType::STAR)) {
+        advance(); // consume closing *
+    }
+    
+    span.end = previous().span().end;
+    return Document::Inline::make_bold(std::move(children), span);
 }
 
-bool Parser::handleItalic(Document::Paragraph& para, TextAccumulator& text, bool& consumed_any) {
-    return handleDelimitedInline(
-        para, text, consumed_any,
-        TokenType::UNDERSCORE,
-        "_",
-        [](std::string content, SourceSpan span) {
-            return Document::Inline::make_italic(
-                {Document::Inline::make_text(std::move(content), span)},
-                span
-            );
-        }
-    );
+Document::InlinePtr Parser::parseItalic() {
+    SourceSpan span;
+    span.start = peek().span().start;
+    
+    advance(); // consume opening _
+    
+    auto children = parseInlines(TokenType::UNDERSCORE);
+    
+    if (check(TokenType::UNDERSCORE)) {
+        advance(); // consume closing _
+    }
+    
+    span.end = previous().span().end;
+    return Document::Inline::make_italic(std::move(children), span);
 }
 
-
+Document::InlinePtr Parser::parseCode() {
+    SourceSpan span;
+    span.start = peek().span().start;
+    advance(); // consume opening `
+    
+    // No recursive evaluation inside code blocks
+    std::string content;
+    while (!isAtEnd() && !check(TokenType::BACKTICK)) {
+        const Token &token = advance();
+        content += token.getLexeme();
+    }
+    
+    if (check(TokenType::BACKTICK)) {
+        advance(); // consume closing `
+    }
+    
+    span.end = previous().span().end;
+    return Document::Inline::make_code(std::move(content), span);
+}
 
 Document::Block Parser::block() {
   if (check(TokenType::HEADING_MARK))

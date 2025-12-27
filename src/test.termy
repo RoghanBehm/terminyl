@@ -13,11 +13,12 @@ a log file, or a CI job. That means:
 - readable headings at multiple levels
 - inline styles that survive copy/paste and diffing
 
-If you’re reading this in a terminal, try resizing the window. The wrap width stays fixed on purpose.
 
-== Inline markup dogfood
+== Inline markup
 
-You can mix styles inside a sentence: _emphasis_ for prose, *bold* for highlights, and `code` for tokens.
+*_bold italic_* _*italic bold*_
+
+You can mix styles inside a sentence: _emphasis_ for prose, *bold* for highlights, and `code` for tokens
 It should handle punctuation cleanly: `--help`, `--width=72`, `std::vector<int>`, and `snake_case_names`.
 
 A realistic sentence:
@@ -31,7 +32,6 @@ For example: a short explanation, followed by a little pseudo-API, then a note w
 
 `terminyl <inputfile>`
 
-If the input contains unknown markup, it should fail loudly rather than silently producing garbage.
 If the input contains markup inside code spans like `*this*` or `_this_`, it should remain literal.
 
 === A small example block
@@ -39,8 +39,6 @@ If the input contains markup inside code spans like `*this*` or `_this_`, it sho
 Here’s a fake snippet embedded as inline code (so it tests wrapping of long code tokens too):
 `int main(int argc, char** argv) { return argc > 1 ? 0 : 64; }`
 
-And here’s a long identifier to see what wrapping does:
-`this_is_a_ridiculously_long_identifier_to_check_what_happens_when_it_hits_the_wrap_width`
 
 ==== Notes
 
