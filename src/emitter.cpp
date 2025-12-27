@@ -1,6 +1,7 @@
 #include "emitter.hpp"
 #include <iostream>
 #include <sstream>
+#include <string_view>
 #include <variant>
 
 Emitter::Emitter(Style s) : style_(std::move(s)) {}
@@ -82,7 +83,8 @@ void Emitter::flatten_runs(const std::vector<Document::InlinePtr> &inlines,
         [&](auto const &node) {
           using T = std::remove_cvref_t<decltype(node)>;
           if constexpr (std::is_same_v<T, Document::Inline::Text>) {
-            out.push_back(Run{node.text, current_style});
+            bool glue_left = is_punctuation(node.text);
+            out.push_back(Run{node.text, current_style, glue_left});
           } else if constexpr (std::is_same_v<T, Document::Inline::Bold>) {
             StyleState child_style = current_style;
             child_style.bold = true;
@@ -145,7 +147,7 @@ void Emitter::wrap_paragraph(std::ostream &out,
       if (needs_wrap) {
         out << '\n';
         write_indent();
-      } else if (line_len != indent) {
+      } else if (line_len != indent && !is_punctuation(word)) {
         if (first_word_in_run && current_state != r.style && current_state != StyleState{}) {
           out << "\x1b[0m"; 
           out << ' ';
@@ -173,4 +175,15 @@ void Emitter::wrap_paragraph(std::ostream &out,
     out << "\x1b[0m";
   }
   out << '\n';
+}
+
+
+bool Emitter::is_punctuation(std::string_view s) const {
+  bool saw_char = false;
+  for (unsigned char c : s) {
+    if (std::isspace(c)) continue;
+    saw_char = true;
+    if (!std::ispunct(c)) return false;
+  }
+  return saw_char;
 }

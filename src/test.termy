@@ -1,25 +1,56 @@
-= hello world
+= Terminyl Demo
 
- Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ligula purus, interdum quis maximus vitae, commodo et mi. Nullam aliquet facilisis risus, ac tincidunt leo. Donec mi turpis, vulputate tempus velit sit amet, euismod mattis elit. Sed sit amet varius ipsum, quis ultrices magna. Pellentesque vulputate felis felis, at ullamcorper augue sollicitudin ac. Pellentesque sed vestibulum nulla, eu semper libero. Vestibulum tortor arcu, facilisis eu accumsan maximus, convallis vel tellus.
+A terminal-first typesetting language: write lightweight markup, get nicely laid-out ANSI output.
+This document is a quick tour of the current feature set: *bold*, _italics_, and `code spans`,
+all wrapped to a fixed width so it still reads well in a narrow terminal.
 
-Suspendisse fermentum lectus enim, quis aliquam metus dapibus et. Nulla facilisi. Pellentesque eget tempus lorem. Donec enim elit, elementum vel velit at, varius molestie nunc. Suspendisse commodo hendrerit tellus. Suspendisse eu tempus turpis, eget semper nisi. Pellentesque nunc mi, congue ut sagittis eget, posuere nec nunc. Pellentesque elementum ut est in euismod. Curabitur pharetra cursus justo, id pulvinar metus venenatis at. Vestibulum dignissim aliquet dui in finibus. Quisque sed tempus risus.
+== Why it exists
 
-Duis rhoncus *nulla* sed = 123 (P)velit malesuada sollicitudin. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nunc ut tortor dictum, accumsan justo sed, finibus magna. Quisque dapibus varius nibh quis tristique. Suspendisse mollis sapien ultrices fermentum pulvinar. Praesent nisl dolor, venenatis at dui ac, ultricies bibendum purus. Nam enim nibh, mattis ut elit id, blandit dapibus justo. Sed congue commodo bibendum. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Cras sed tempor sem. Aliquam sodales felis magna, ac dapibus turpis efficitur ac. Praesent feugiat sagittis tortor ornare consequat. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Integer vitae faucibus urna, sit amet luctus justo. 
-b
+Most “pretty text” tools assume a GUI. Terminyl assumes your output is going to `stdout`,
+a log file, or a CI job. That means:
 
-== hello 2
+- predictable wrapping
+- readable headings at multiple levels
+- inline styles that survive copy/paste and diffing
 
-asdsad  
+If you’re reading this in a terminal, try resizing the window. The wrap width stays fixed on purpose.
 
-`dsadsad` dsad `sads` im _dogfood_ yea
+== Inline markup dogfood
+
+You can mix styles inside a sentence: _emphasis_ for prose, *bold* for highlights, and `code` for tokens.
+It should handle punctuation cleanly: `--help`, `--width=72`, `std::vector<int>`, and `snake_case_names`.
+
+A realistic sentence:
+When the lexer sees `*stars*` or `_underscores_`, the parser decides whether it’s *markup* or literal text,
+and the emitter turns it into ANSI without breaking wrapping.
+
+== "Looks like a README" paragraph
+
+Terminyl is meant for documentation that still looks good when read through `less` or in a build log.
+For example: a short explanation, followed by a little pseudo-API, then a note with emphasis.
+
+`terminyl <inputfile>`
+
+If the input contains unknown markup, it should fail loudly rather than silently producing garbage.
+If the input contains markup inside code spans like `*this*` or `_this_`, it should remain literal.
+
+=== A small example block
+
+Here’s a fake snippet embedded as inline code (so it tests wrapping of long code tokens too):
+`int main(int argc, char** argv) { return argc > 1 ? 0 : 64; }`
+
+And here’s a long identifier to see what wrapping does:
+`this_is_a_ridiculously_long_identifier_to_check_what_happens_when_it_hits_the_wrap_width`
+
+==== Notes
+
+- `code spans` should be immune to *bold* and _italics_ parsing.
+- *bold* and _italics_ should not “leak” past their closing marker.
+- wrapping should work even when the line contains a lot of styled runs.
+
+===== Final tiny header
+
+If you can read this comfortably in the terminal, the demo did its job.
 
 
-=== hello 3
-
-Hi,
-
-==== hello 4
-
-===== hello 5
-
-`int main() { return 1; }`
+Stress test: *bold* then `_literal underscores_` then `code_with_*_and__` then _italics_ then `--flag=123` ok.
