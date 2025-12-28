@@ -1,9 +1,11 @@
 #include "parser.hpp"
 #include "token_type.hpp"
 #include <cassert>
+#include <iostream>
 
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
+using Expr = Document::Expr;
 
 Document Parser::parse() {
   Document doc;
@@ -115,6 +117,7 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
             inlines.push_back(parseCode());
             continue;
         }
+
         
         // Regular text
         const Token &token = advance();
@@ -178,6 +181,63 @@ Document::InlinePtr Parser::parseCode() {
     return Document::Inline::make_code(std::move(content), span);
 }
 
+
+Document::InlinePtr Parser::parseSplice() {
+  SourceSpan span;
+  span.start = peek().span().start;
+  advance();
+
+  if (match(TokenType::LEFT_PAREN)) {
+
+  }
+  Document::ExprPtr e = parseExpr();
+
+  if (isAtEnd()) {
+    std::cerr << "Unterminated splice, expect ')'\n";
+  }
+
+  consume(TokenType::RIGHT_PAREN, "Unterminated splice: expected ')'");
+  span.end = previous().span().end;
+  return Document::Inline::make_splice(std::move(e), span);
+
+
+
+}
+
+Document::ExprPtr Parser::parseExpr() {
+  return add();
+}
+
+Document::ExprPtr Parser::add() {
+  
+  auto lhs = primary();
+  while (match(TokenType::PLUS)) {
+    Token op = previous();
+    auto rhs = primary();
+
+    SourceSpan sp;
+    sp.start = peek().span().start;
+    sp.end = previous().span().end;
+    lhs = Document::Expr::make_binary(std::move(lhs), std::move(op), std::move(rhs), sp);
+  }
+  
+  return lhs;
+}
+
+Document::ExprPtr Parser::primary() {
+  if (match(TokenType::NUMBER)) {
+    const Token& t = previous();
+    double v = std::stod(std::string(t.getLexeme()));
+    return Document::Expr::make_num(v, t.span());
+  }
+
+  if (match(TokenType::LEFT_PAREN)) {
+    Document::ExprPtr e = parseExpr();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' in expression\n");
+    return e;
+  }
+}
+
 Document::Block Parser::block() {
   if (check(TokenType::HEADING_MARK))
     return heading();
@@ -219,3 +279,16 @@ bool Parser::check(TokenType type) {
 }
 
 bool Parser::isAtEnd() { return peek().getType() == TokenType::EOF_; }
+
+Token Parser::consume(TokenType type, std::string message) {
+    if (check(type)) return advance();
+
+    throw error(peek(), message);
+}
+
+
+Parser::ParseError Parser::error(Token token, std::string message) const {
+  // NEED TO MAKE THIS ACTUALLY USEFUL
+    std::cerr << "Error:" << message << "\n";
+    return ParseError{};
+}

@@ -17,7 +17,7 @@ graph LR
     C -->|"Document AST"| D["Emitter"]
     D -->|"ANSI/UTF-8 output"| E["Terminal"]
 ```
-Three-stage pipeline: lexer tokenizes input, parser builds an AST with block and inline elements, emitter handles text wrapping and applies ANSI escape codes. Currently supports multiple heading levels (with level-specific UTF-8 box styles), paragraphs, and inline formatting (bold, italic, code spans).
+Three-stage pipeline: lexer tokenizes input, parser builds an AST with block and inline elements, emitter handles text wrapping and applies ANSI escape codes. Currently supports multiple heading levels (with level-specific UTF-8 box styles), paragraphs (wrap text at fixed width), and inline formatting (bold, italic, code spans).
 
 
 ## Building

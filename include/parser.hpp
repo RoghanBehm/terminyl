@@ -5,6 +5,11 @@ class Parser {
 public:
   Parser(std::vector<Token> tokens);
   Document parse();
+  class ParseError : public std::runtime_error {
+    public:
+        ParseError() : std::runtime_error("") {}
+  };
+  ParseError error(Token token, std::string message) const;
 
 private:
   const std::vector<Token> tokens_;
@@ -19,11 +24,16 @@ private:
   bool isAtEnd();
   const Token &advance();
   bool handleNewlineInParagraph(TextAccumulator &text, bool &consumed_any);
-
+  Token consume(TokenType type, std::string message);
   std::vector<Document::InlinePtr> parseInlines(TokenType endToken = TokenType::NEWLINE);
   Document::InlinePtr parseBold();
   Document::InlinePtr parseItalic();
   Document::InlinePtr parseCode();
+  Document::InlinePtr parseSplice();
+  Document::Expr::Ptr parseExpr();
+  Document::Expr::Ptr add();
+  Document::Expr::Ptr primary();
+
   Document::Block block();
   
 };

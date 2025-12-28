@@ -4,7 +4,6 @@ enum class TokenType {
     // Delimiters / symbols
     NEWLINE,
     HASH,       // '#'
-    EQUAL,     // '='
     LEFT_PAREN,     // '('
     RIGHT_PAREN,     // ')'
     LEFT_SQ_BRACKET,   // '['
@@ -19,5 +18,17 @@ enum class TokenType {
     BACKTICK, // '`'
     UNDERSCORE, // '_'
     EOF_,
+    NUMBER,
+
+
+    // One or two character tokens.
+    BANG, BANG_EQUAL,
+    EQUAL, EQUAL_EQUAL,
+    GREATER, GREATER_EQUAL,
+    LESS, LESS_EQUAL,
+
+    // Operators
+    PLUS, SLASH,
+    MINUS,
 
 };
