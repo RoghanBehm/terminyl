@@ -49,6 +49,8 @@ void Lexer::lexToken() {
   case ',':
     addToken(COMMA);
     break;
+  case '+':
+    addToken(PLUS);
   case '#':
     addToken(HASH);
     break;
@@ -102,10 +104,14 @@ std::vector<Token> Lexer::lexTokens() {
 }
 
 void Lexer::text() {
-  while (peek() != '\n' && !isAtEnd() && peek() != '*' && peek() != '_' &&
-         peek() != '`') {
+  while (!isSpecialChar(peek())) {
     advance();
   }
 
   addToken(TokenType::TEXT);
+}
+
+bool Lexer::isSpecialChar(char c) {
+  static constexpr std::string_view specialChars = "\n*_`#(),+-/=<>!";
+  return specialChars.find(c) != std::string_view::npos;
 }

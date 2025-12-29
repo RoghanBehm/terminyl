@@ -34,9 +34,9 @@ Document::Expr::Ptr Document::Expr::make_binary(Document::Expr::Ptr lhs,
       sp);
 }
 
-Document::Expr::Ptr make_num(double v, SourceSpan sp) {
+Document::Expr::Ptr Document::Expr::make_num(double v, SourceSpan sp) {
   return std::make_shared<Document::Expr>(Document::Expr::Num{v}, sp);
 }
-Document::Expr::Ptr make_str(std::string s, SourceSpan sp) {
+Document::Expr::Ptr Document::Expr::make_str(std::string s, SourceSpan sp) {
   return std::make_shared<Document::Expr>(Document::Expr::Str{std::move(s)}, sp);
 }
