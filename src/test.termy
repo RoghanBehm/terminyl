@@ -52,3 +52,8 @@ If you can read this comfortably in the terminal, the demo did its job.
 
 
 Stress test: *bold* then `_literal underscores_` then `code_with_*_and__` then _italics_ then `--flag=123` ok.
+
+#(1+2)
+
+#(4)
+

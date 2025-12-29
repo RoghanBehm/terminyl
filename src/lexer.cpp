@@ -60,16 +60,8 @@ void Lexer::lexToken() {
   case '+':
     addToken(PLUS);
     break;
-  case '#':
-    if (peek() == '"') {
-      advance();
-      string();
-    } else if (isDigit(peek())) {
-      number();
-    } else {
-      text();
-    }
-    break;
+  case '#': addToken(HASH); break;
+  case '"': string(); break;
   case '*':
     addToken(STAR);
     break;
@@ -89,7 +81,7 @@ void Lexer::lexToken() {
       text();
     break;
   default:
-    text();
+    if (isDigit(c)) number(); else text();
     break;
   }
 }
@@ -128,38 +120,26 @@ void Lexer::text() {
 }
 
 void Lexer::number() {
-  while (isDigit(peek()))
-    advance();
-
-  // Look for a fractional part
+  while (isDigit(peek())) advance();
   if (peek() == '.' && isDigit(peekNext())) {
     advance();
-
-    while (isDigit(peek()))
-      advance();
+    while (isDigit(peek())) advance();
   }
 
-  addToken(TokenType::NUMBER,
-           std::stod(getSource().substr(current, current - start)));
+  auto value = getSource().substr(start, current - start);
+  addToken(TokenType::NUMBER, std::stod(value));
 }
 
 void Lexer::string() {
-  while (peek() != '"' && !isAtEnd()) {
-
-    if (peek() == '\n') {
-      std::cerr << "Unterminated string\n";
-      return;
-    }
+  while (!isAtEnd() && peek() != '"') {
+    if (peek() == '\n') { std::cerr << "Unterminated string\n"; return; }
+    advance();
   }
-
-  if (isAtEnd()) {
-    std::cerr << "Unterminated string\n";
-  }
+  if (isAtEnd()) { std::cerr << "Unterminated string\n"; return; }
 
   advance();
 
-  std::string_view value{
-      getSource().substr(start + 1, current - 1 - (start + 1))};
+  std::string_view value{ getSource().data() + start + 1, (current - start) - 2 };
   addToken(TokenType::STRING, value);
 }
 

@@ -118,6 +118,12 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
             continue;
         }
 
+        if (check(TokenType::HASH)) {
+          flush_text();
+          inlines.push_back(parseSplice());
+          continue;
+        }
+
         
         // Regular text
         const Token &token = advance();
@@ -185,11 +191,10 @@ Document::InlinePtr Parser::parseCode() {
 Document::InlinePtr Parser::parseSplice() {
   SourceSpan span;
   span.start = peek().span().start;
-  advance();
+  advance(); // '#'
 
-  if (match(TokenType::LEFT_PAREN)) {
+  consume(TokenType::LEFT_PAREN, "Expected '(' after '#'");
 
-  }
   Document::ExprPtr e = parseExpr();
 
   if (isAtEnd()) {
@@ -198,7 +203,7 @@ Document::InlinePtr Parser::parseSplice() {
 
   consume(TokenType::RIGHT_PAREN, "Unterminated splice: expected ')'");
   span.end = previous().span().end;
-  return Document::Inline::make_splice(std::move(e), span);
+  return Document::Inline::make_splice(e, span);
 
 
 

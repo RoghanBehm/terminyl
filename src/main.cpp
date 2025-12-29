@@ -1,4 +1,5 @@
 #include "emitter.hpp"
+#include "lowerer.hpp"
 #include "io.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
@@ -19,8 +20,10 @@ int main(int argc, char** argv) {
         auto tokens = lex.lexTokens();
         auto doc = Parser(std::move(tokens)).parse();
         
+        Lowerer lowerer(doc);
+        auto low_doc = lowerer.lower();
         Emitter emitter;
-        emitter.render(std::cout, doc);
+        emitter.render(std::cout, low_doc);
     } catch (const std::exception& e) {
         std::cerr << e.what() << "\n";
         return 1;
