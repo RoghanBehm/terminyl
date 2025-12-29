@@ -1,6 +1,7 @@
 #include "lexer.hpp"
 #include "token_type.hpp"
 #include <cstdio>
+#include <iostream>
 // #include <iostream>
 
 Lexer::Lexer(std::string &source) : source_(source) {}
@@ -18,16 +19,23 @@ char Lexer::advance() {
   return c;
 }
 
-void Lexer::addToken(TokenType type) {
+void Lexer::addToken(TokenType type) { addToken(type, std::monostate{}); }
+
+void Lexer::addToken(TokenType type, Literal value) {
   std::string_view text{getSource().data() + start, current - start};
-  SourceSpan span{start_pos, cur_pos};
-  tokens.emplace_back(type, text, span);
+  tokens.emplace_back(type, text, SourceSpan{start_pos, cur_pos}, value);
 }
 
 char Lexer::peek() {
   if (isAtEnd())
     return '\0';
   return getSource().at(current);
+}
+
+char Lexer::peekNext() {
+  if (current + 1 >= getSource().length())
+    return '\0';
+  return getSource().at(current + 1);
 }
 
 void Lexer::lexToken() {
@@ -51,8 +59,16 @@ void Lexer::lexToken() {
     break;
   case '+':
     addToken(PLUS);
+    break;
   case '#':
-    addToken(HASH);
+    if (peek() == '"') {
+      advance();
+      string();
+    } else if (isDigit(peek())) {
+      number();
+    } else {
+      text();
+    }
     break;
   case '*':
     addToken(STAR);
@@ -92,13 +108,13 @@ std::vector<Token> Lexer::lexTokens() {
     start_pos = cur_pos;
     lexToken();
   }
-  
+
   tokens.emplace_back(TokenType::EOF_, std::string_view{},
-                      SourceSpan{cur_pos, cur_pos});
-    /* DEBUG
-  for (auto const &t : tokens) {
-    std::cout << (int)t.getType() << " '" << t.getLexeme() << "'\n";
-  }
+                      SourceSpan{cur_pos, cur_pos}, std::monostate{});
+  /* DEBUG
+for (auto const &t : tokens) {
+  std::cout << (int)t.getType() << " '" << t.getLexeme() << "'\n";
+}
 */
   return tokens;
 }
@@ -111,7 +127,45 @@ void Lexer::text() {
   addToken(TokenType::TEXT);
 }
 
+void Lexer::number() {
+  while (isDigit(peek()))
+    advance();
+
+  // Look for a fractional part
+  if (peek() == '.' && isDigit(peekNext())) {
+    advance();
+
+    while (isDigit(peek()))
+      advance();
+  }
+
+  addToken(TokenType::NUMBER,
+           std::stod(getSource().substr(current, current - start)));
+}
+
+void Lexer::string() {
+  while (peek() != '"' && !isAtEnd()) {
+
+    if (peek() == '\n') {
+      std::cerr << "Unterminated string\n";
+      return;
+    }
+  }
+
+  if (isAtEnd()) {
+    std::cerr << "Unterminated string\n";
+  }
+
+  advance();
+
+  std::string_view value{
+      getSource().substr(start + 1, current - 1 - (start + 1))};
+  addToken(TokenType::STRING, value);
+}
+
 bool Lexer::isSpecialChar(char c) {
   static constexpr std::string_view specialChars = "\n*_`#(),+-/=<>!";
   return specialChars.find(c) != std::string_view::npos;
 }
+
+bool Lexer::isDigit(char c) { return c >= '0' && c <= '9'; }

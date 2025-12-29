@@ -13,18 +13,24 @@ public:
     char peek();
     std::vector<Token> scan_tokens();
     void addToken(TokenType type);
+    void addToken(TokenType type, Literal lit);
     void lexToken();
     void heading();
     std::vector<Token> lexTokens();
     const std::string& getSource() const { return source_; }
 
 private:
+    char peekNext();
     char advance();
     void skip_spaces();
     void text();
     Token ident_or_text();
     Token punctuation();
+    void number();
+    void string();
     bool isAtEnd();
+    bool isDigit(char c);
+    bool isSpecialChar(char c);
     const std::string& source_;
     std::size_t start = 0;
     std::size_t current = 0;

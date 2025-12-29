@@ -236,6 +236,8 @@ Document::ExprPtr Parser::primary() {
     consume(TokenType::RIGHT_PAREN, "Expect ')' in expression\n");
     return e;
   }
+
+  return Document::ExprPtr{};
 }
 
 Document::Block Parser::block() {
@@ -292,3 +294,4 @@ Parser::ParseError Parser::error(Token token, std::string message) const {
     std::cerr << "Error:" << message << "\n";
     return ParseError{};
 }
+
