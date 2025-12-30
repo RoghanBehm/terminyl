@@ -1,15 +1,19 @@
 #include "lowerer.hpp"
+#include "token_type.hpp"
 #include <iostream>
+#include <optional>
 #include <sstream>
 
 std::string Lowerer::toString(const Value &val) {
   return std::visit(
       [](auto const &x) -> std::string {
         using T = std::remove_cvref_t<decltype(x)>;
-        if constexpr (std::is_same_v<T, double>) {
+        if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>) {
           std::ostringstream oss;
           oss << x;
           return oss.str();
+        } else if constexpr (std::is_same_v<T, Error>) {
+          return "Error in Lowerer::toString";
         } else {
           return x;
         }
@@ -86,27 +90,88 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
           return Value{node.value};
 
         } else if constexpr (std::is_same_v<T, Document::Expr::Str>) {
-          return Value{node.value}; // assuming Value supports std::string
+          return Value{node.value};
 
         } else if constexpr (std::is_same_v<T, Document::Expr::Binary>) {
-
           auto lhs = eval(*node.lhs);
           auto rhs = eval(*node.rhs);
-          Value value{};
 
-          if (node.op.getType() != TokenType::PLUS) {
-            throw std::runtime_error("unsupported operator");
+          auto both_double = [&]() -> std::optional<std::pair<double, double>> {
+            if (auto l = std::get_if<double>(&lhs.v))
+              if (auto r = std::get_if<double>(&rhs.v))
+                return {{*l, *r}};
+            return std::nullopt;
+          };
+
+          const auto op_type = node.op.getType();
+
+          switch (op_type) {
+          case TokenType::PLUS: {
+            if (auto lr = both_double())
+              return Value{lr->first + lr->second};
+            return Value{toString(lhs) + toString(rhs)};
           }
-          if (auto a = std::get_if<double>(&lhs.v); a) {
-            if (auto b = std::get_if<double>(&rhs.v); b) {
-              return Value{*a + *b};
-            }
+
+          case TokenType::MINUS: {
+            if (auto lr = both_double())
+              return Value{lr->first - lr->second};
+            throw std::runtime_error("'-' expects two numbers");
           }
-          return Value{toString(lhs) + toString(rhs)};
+
+          case TokenType::SLASH: {
+            if (auto lr = both_double())
+              return Value{lr->first / lr->second};
+            throw std::runtime_error("'/' expects two numbers");
+          }
+
+          case TokenType::STAR: {
+            if (auto lr = both_double())
+              return Value{lr->first * lr->second};
+            throw std::runtime_error("'*' expects two numbers");
+          }
+
+          case TokenType::BANG_EQUAL: {
+            if (auto lr = both_double())
+              return Value{lr->first != lr->second};
+            throw std::runtime_error("'!=' expects comparable types");
+          }
+
+          case TokenType::EQUAL_EQUAL: {
+            if (auto lr = both_double())
+              return Value{lr->first == lr->second};
+            throw std::runtime_error("'==' expects comparable types");
+          }
+
+          case TokenType::GREATER: {
+            if (auto lr = both_double())
+              return Value{lr->first > lr->second};
+            throw std::runtime_error("'>' expects comparable types");
+          }
+
+          case TokenType::GREATER_EQUAL: {
+            if (auto lr = both_double())
+              return Value{lr->first >= lr->second};
+            throw std::runtime_error("'>=' expects comparable types");
+          }
+
+          case TokenType::LESS: {
+            if (auto lr = both_double())
+              return Value{lr->first < lr->second};
+            throw std::runtime_error("'<' expects comparable types");
+          }
+
+          case TokenType::LESS_EQUAL: {
+            if (auto lr = both_double())
+              return Value{lr->first <= lr->second};
+            throw std::runtime_error("'<=' expects comparable types");
+          }
+
+          default:
+            return Value{Error{"Lowerer::eval(): Unhandled binary operator"}};
+          }
 
         } else {
-          std::cerr << "Unhandled Expr variant alternative\n";
-          return Value{};
+          return Value{Error{"Lowerer::eval(): Unhandled expr alternative"}};
         }
       },
       expr.node);

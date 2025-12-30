@@ -57,3 +57,6 @@ Stress test: *bold* then `_literal underscores_` then `code_with_*_and__` then _
 
 #(4)
 
+hi #(10-1) 
+
+#(1==1) #(1!=2) #(2>=2) #(3<=2) #(4/8)

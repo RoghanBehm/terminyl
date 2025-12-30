@@ -12,6 +12,7 @@ public:
     TokenType getType() const { return type_; }
     std::string_view getLexeme() const { return lexeme_; }
     const SourceSpan& span() const noexcept { return span_; }
+    static std::string to_string(TokenType type);
 private:
     TokenType type_;
     std::string_view lexeme_;

@@ -13,8 +13,12 @@ private:
   std::vector<Document::InlinePtr>
   lowerInlines(const std::vector<Document::InlinePtr>& inlines);
 
+  struct Error {
+    std::string message;
+  };
+
   struct Value {
-    std::variant<double, std::string> v;
+    std::variant<double, std::string, bool, Error> v;
   };
 
   Value eval(const Document::Expr& expr);

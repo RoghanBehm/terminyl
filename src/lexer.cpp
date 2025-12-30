@@ -38,6 +38,16 @@ char Lexer::peekNext() {
   return getSource().at(current + 1);
 }
 
+bool Lexer::match(char expected) {
+  if (isAtEnd())
+    return false;
+  if (getSource().at(current) != expected)
+    return false;
+
+  current++;
+  return true;
+}
+
 void Lexer::lexToken() {
   using enum TokenType;
   char c = advance();
@@ -48,6 +58,7 @@ void Lexer::lexToken() {
   case ')':
     addToken(RIGHT_PAREN);
     break;
+
   case '[':
     addToken(LEFT_SQ_BRACKET);
     break;
@@ -60,8 +71,15 @@ void Lexer::lexToken() {
   case '+':
     addToken(PLUS);
     break;
-  case '#': addToken(HASH); break;
-  case '"': string(); break;
+  case '/':
+    addToken(SLASH);
+    break;
+  case '#':
+    addToken(HASH);
+    break;
+  case '"':
+    string();
+    break;
   case '*':
     addToken(STAR);
     break;
@@ -71,6 +89,18 @@ void Lexer::lexToken() {
   case '_':
     addToken(UNDERSCORE);
     break;
+  case '-':
+    addToken(MINUS);
+    break;
+  case '!':
+    addToken(match('=') ? BANG_EQUAL : BANG);
+    break;
+  case '<':
+    addToken(match('=') ? LESS_EQUAL : LESS);
+    break;
+  case '>':
+    addToken(match('=') ? GREATER_EQUAL : GREATER);
+    break;
   case '\n':
     addToken(NEWLINE);
     break;
@@ -78,10 +108,13 @@ void Lexer::lexToken() {
     if (start_pos.column == 1)
       heading();
     else
-      text();
+      addToken(match('=') ? EQUAL_EQUAL : EQUAL);
     break;
   default:
-    if (isDigit(c)) number(); else text();
+    if (isDigit(c))
+      number();
+    else
+      text();
     break;
   }
 }
@@ -103,11 +136,12 @@ std::vector<Token> Lexer::lexTokens() {
 
   tokens.emplace_back(TokenType::EOF_, std::string_view{},
                       SourceSpan{cur_pos, cur_pos}, std::monostate{});
-  /* DEBUG
-for (auto const &t : tokens) {
-  std::cout << (int)t.getType() << " '" << t.getLexeme() << "'\n";
-}
-*/
+
+  for (auto const &t : tokens) {
+    std::cout << Token::to_string(t.getType()) << " '" << t.getLexeme()
+              << "'\n";
+  }
+
   return tokens;
 }
 
@@ -120,10 +154,12 @@ void Lexer::text() {
 }
 
 void Lexer::number() {
-  while (isDigit(peek())) advance();
+  while (isDigit(peek()))
+    advance();
   if (peek() == '.' && isDigit(peekNext())) {
     advance();
-    while (isDigit(peek())) advance();
+    while (isDigit(peek()))
+      advance();
   }
 
   auto value = getSource().substr(start, current - start);
@@ -132,14 +168,20 @@ void Lexer::number() {
 
 void Lexer::string() {
   while (!isAtEnd() && peek() != '"') {
-    if (peek() == '\n') { std::cerr << "Unterminated string\n"; return; }
+    if (peek() == '\n') {
+      std::cerr << "Unterminated string\n";
+      return;
+    }
     advance();
   }
-  if (isAtEnd()) { std::cerr << "Unterminated string\n"; return; }
+  if (isAtEnd()) {
+    std::cerr << "Unterminated string\n";
+    return;
+  }
 
   advance();
 
-  std::string_view value{ getSource().data() + start + 1, (current - start) - 2 };
+  std::string_view value{getSource().data() + start + 1, (current - start) - 2};
   addToken(TokenType::STRING, value);
 }
 

@@ -18,9 +18,10 @@ public:
   struct Str { std::string value; };
   struct Call { std::string callee; std::vector<Ptr> args; };
   struct Binary { Ptr lhs; Token op; Ptr rhs; };
+  struct Unary { Token op; Ptr rhs; };
 
 
-  std::variant<Num, Var, Str, Call, Binary> node;
+  std::variant<Num, Var, Str, Call, Binary, Unary> node;
   SourceSpan span{};
 
   
@@ -29,11 +30,13 @@ public:
   Expr(Str s, SourceSpan sp) : node(std::move(s)), span(sp) {}
   Expr(Call c, SourceSpan sp) : node(std::move(c)), span(sp) {}
   Expr(Binary b, SourceSpan sp) : node(std::move(b)), span(sp) {}
+  Expr(Unary u, SourceSpan sp) : node(std::move(u)), span(sp) {}
 
   static Ptr make_num(double v, SourceSpan sp);
   static Ptr make_str(std::string s, SourceSpan sp);
   
   static Ptr make_binary(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);
+  static Ptr make_unary(Token op, Ptr rhs, SourceSpan sp);
 
   };
   struct Inline {

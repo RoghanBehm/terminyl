@@ -22,7 +22,7 @@ graph LR
     B -->|"Tokens"| C["Parser"]
     C -->|"AST (structure + expressions)"| D["Lowerer"]
     D -->|"Evaluated + normalized doc (styles resolved, ready to wrap)"| E["Emitter"]
-    E -->|"ANSI / UTF-8"| F["Terminal"]
+    E -->|"ANSI / UTF-8"| F["stdout"]
 
 ```
 Terminyl uses a multi-stage pipeline:
@@ -44,7 +44,7 @@ Terminyl uses a multi-stage pipeline:
 
 ### Expressions (implemented, minimal)
 - Inline expression splices using `#( … )`
-- Numeric literals and `+` operator
+- Numeric literals and basic operators (+, -, *, /, ==, >=, <=, !=, >)
 - Expression results are evaluated and inserted into the document
 
 #### Example

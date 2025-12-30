@@ -1,4 +1,5 @@
 #include "parser.hpp"
+#include "source.hpp"
 #include "token_type.hpp"
 #include <cassert>
 #include <iostream>
@@ -241,7 +242,20 @@ Document::Expr::Ptr Parser::term() {
 }
 
 Document::Expr::Ptr Parser::factor() {
-  return laparse([this]() { return primary(); }, {TokenType::SLASH, TokenType::STAR});
+  return laparse([this]() { return unary(); }, {TokenType::SLASH, TokenType::STAR});
+}
+
+Document::Expr::Ptr Parser::unary() {
+  if (match({TokenType::BANG, TokenType::MINUS})) {
+    Token op = previous();
+    Document::Expr::Ptr right = unary();
+    SourceSpan sp;
+    sp.start = op.span().start;
+    sp.end = right->span.end;
+    return Document::Expr::make_unary(std::move(op), std::move(right), sp);
+  }
+
+  return primary();
 }
 
 

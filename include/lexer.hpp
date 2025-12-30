@@ -11,6 +11,7 @@ public:
 
     Token next();
     char peek();
+    bool match(char expected);
     std::vector<Token> scan_tokens();
     void addToken(TokenType type);
     void addToken(TokenType type, Literal lit);

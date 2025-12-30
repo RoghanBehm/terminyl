@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 enum class TokenType {
     // Delimiters / symbols
     NEWLINE,
@@ -32,3 +33,7 @@ enum class TokenType {
     MINUS,
 
 };
+
+
+
+
