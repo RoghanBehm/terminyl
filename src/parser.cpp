@@ -19,6 +19,20 @@ Document Parser::parse() {
   return doc;
 }
 
+Document::Expr::Ptr Parser::laparse(std::function<Document::Expr::Ptr()> op_type, std::initializer_list<TokenType> types) {
+  Document::Expr::Ptr lhs = op_type();
+
+  while (match(types)) {
+    Token op = previous();
+    Document::Expr::Ptr rhs = op_type();
+    SourceSpan sp;
+    sp.start = lhs->span.start;
+    sp.end = rhs->span.end;
+    lhs = Document::Expr::make_binary(std::move(lhs), std::move(op), std::move(rhs), sp);
+  }
+  return lhs;
+}
+
 Document::Heading Parser::heading() {
   const Token &token = advance();
 
@@ -195,7 +209,7 @@ Document::InlinePtr Parser::parseSplice() {
 
   consume(TokenType::LEFT_PAREN, "Expected '(' after '#'");
 
-  Document::ExprPtr e = parseExpr();
+  Document::ExprPtr e = equality();
 
   if (isAtEnd()) {
     std::cerr << "Unterminated splice, expect ')'\n";
@@ -203,31 +217,33 @@ Document::InlinePtr Parser::parseSplice() {
 
   consume(TokenType::RIGHT_PAREN, "Unterminated splice: expected ')'");
   span.end = previous().span().end;
-  return Document::Inline::make_splice(e, span);
+  return Document::Inline::make_splice(std::move(e), span);
 
 
 
 }
 
-Document::ExprPtr Parser::parseExpr() {
-  return add();
+Document::Expr::Ptr Parser::equality() {
+  return laparse([this]() { return comparison(); }, {TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL});
 }
 
-Document::ExprPtr Parser::add() {
-  
-  auto lhs = primary();
-  while (match(TokenType::PLUS)) {
-    Token op = previous();
-    auto rhs = primary();
-
-    SourceSpan sp;
-    sp.start = peek().span().start;
-    sp.end = previous().span().end;
-    lhs = Document::Expr::make_binary(std::move(lhs), std::move(op), std::move(rhs), sp);
-  }
-  
-  return lhs;
+Document::Expr::Ptr Parser::comparison() {
+  return laparse([this]() { return term(); }, {
+    TokenType::GREATER,
+    TokenType::GREATER_EQUAL,
+    TokenType::LESS,
+    TokenType::LESS_EQUAL
+  });
 }
+
+Document::Expr::Ptr Parser::term() {
+  return laparse([this]() { return factor(); }, {TokenType::MINUS, TokenType::PLUS});
+}
+
+Document::Expr::Ptr Parser::factor() {
+  return laparse([this]() { return primary(); }, {TokenType::SLASH, TokenType::STAR});
+}
+
 
 Document::ExprPtr Parser::primary() {
   if (match(TokenType::NUMBER)) {
@@ -237,12 +253,12 @@ Document::ExprPtr Parser::primary() {
   }
 
   if (match(TokenType::LEFT_PAREN)) {
-    Document::ExprPtr e = parseExpr();
+    Document::ExprPtr e = equality();
     consume(TokenType::RIGHT_PAREN, "Expect ')' in expression\n");
     return e;
   }
 
-  return Document::ExprPtr{};
+  throw error(peek(), "Expected expression.");
 }
 
 Document::Block Parser::block() {
@@ -277,6 +293,16 @@ bool Parser::match(TokenType type) {
   }
 
   return false;
+}
+
+bool Parser::match(std::initializer_list<TokenType> types) {
+    for (auto &t : types) {
+        if (check(t)) {
+            advance();
+            return true;
+        }
+    }
+    return false;
 }
 
 bool Parser::check(TokenType type) {

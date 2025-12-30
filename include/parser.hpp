@@ -1,6 +1,8 @@
 #include "document.hpp"
 #include "text_accumulator.hpp"
 #include "token.hpp"
+#include <functional>
+#include <initializer_list>
 class Parser {
 public:
   Parser(std::vector<Token> tokens);
@@ -19,6 +21,8 @@ private:
   int current = 0;
   bool check(TokenType type);
   bool match(TokenType type);
+  bool match(std::initializer_list<TokenType> types);
+  Document::Expr::Ptr laparse(std::function<Document::Expr::Ptr()> op_type, std::initializer_list<TokenType> types);
   const Token &peek() const;
   const Token &previous() const;
   bool isAtEnd();
@@ -30,8 +34,11 @@ private:
   Document::InlinePtr parseItalic();
   Document::InlinePtr parseCode();
   Document::InlinePtr parseSplice();
-  Document::Expr::Ptr parseExpr();
-  Document::Expr::Ptr add();
+  Document::Expr::Ptr equality();
+  Document::Expr::Ptr comparison();
+  Document::Expr::Ptr term();
+  Document::Expr::Ptr factor();
+  Document::Expr::Ptr unary();
   Document::Expr::Ptr primary();
 
   Document::Block block();

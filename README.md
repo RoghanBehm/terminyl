@@ -20,9 +20,10 @@ Sample input in `src/test.termy`.
 graph LR
     A["Source text (.termy)"] --> B["Lexer"]
     B -->|"Tokens"| C["Parser"]
-    C -->|"AST (blocks, inlines, expressions)"| D["Lowerer"]
-    D -->|"Lowered Document"| E["Emitter"]
-    E -->|"ANSI/UTF-8 output"| F["Terminal"]
+    C -->|"AST (structure + expressions)"| D["Lowerer"]
+    D -->|"Evaluated + normalized doc (styles resolved, ready to wrap)"| E["Emitter"]
+    E -->|"ANSI / UTF-8"| F["Terminal"]
+
 ```
 Terminyl uses a multi-stage pipeline:
 
@@ -55,7 +56,6 @@ Terminyl uses a multi-stage pipeline:
 
 ### Statements (planned)
 - User defined functions/macros
-- Iteration
 - Control flow
 
 ## Design Goals
