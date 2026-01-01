@@ -44,7 +44,7 @@ Terminyl uses a multi-stage pipeline:
 
 ### Expressions (implemented, minimal)
 - Inline expression splices using `#( … )`
-- Numeric literals and basic operators (+, -, *, /, ==, >=, <=, !=, >)
+- Numeric literals and basic binary operators (+, -, *, /, ==, >=, <=, !=, >)
 - Expression results are evaluated and inserted into the document
 
 #### Example

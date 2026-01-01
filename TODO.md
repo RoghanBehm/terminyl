@@ -2,8 +2,8 @@
 
 ## Priority
 
+- Support more expressions
 - Proper exception handling + error reporting
-- Fully implement arithmetic expressions
 - Add variable binding
 
 
@@ -17,4 +17,4 @@
 ## Sugar
 
 - Bytecode VM
-- 
+- Refactor AST shared_ptrs to raw ptrs + arena
