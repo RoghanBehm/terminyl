@@ -6,8 +6,32 @@
 #include "error.hpp"
 #include <iostream>
 #include <string>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <algorithm>
 
+#ifdef _WIN32
+#include <windows.h>
 
+std::size_t get_terminal_width() {
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
+        return csbi.srWindow.Right - csbi.srWindow.Left + 1;
+    }
+    return 80; // fallback
+}
+#else
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+std::size_t get_terminal_width() {
+    struct winsize w;
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_col > 0) {
+        return w.ws_col;
+    }
+    return 80; // fallback
+}
+#endif
 
 int main(int argc, char** argv) {
     if (argc != 2) {
@@ -56,7 +80,9 @@ int main(int argc, char** argv) {
         }
         
         // Only emit if no errors
-        Emitter emitter;
+        Style style;
+        style.width = std::min(get_terminal_width() - 4, 120ul);
+        Emitter emitter(style);
         emitter.render(std::cout, low_doc);
     } catch (const std::exception& e) {
         std::cerr << "Internal error: " << e.what() << "\n";

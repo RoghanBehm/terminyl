@@ -3,16 +3,13 @@
 ## Priority
 
 - Support more expressions
-- Proper exception handling + error reporting
 - Add variable binding
-
+- Control flow
 
 ## Required
 
-- Statements
-    - Control flow
-    - Function calls
-    - User-defined functions
+- Function calls
+- User-defined functions
 
 ## Sugar
 
