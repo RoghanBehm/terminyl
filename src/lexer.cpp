@@ -148,10 +148,9 @@ std::vector<Token> Lexer::lexTokens() {
   }
   
 void Lexer::text() {
-  while (!isSpecialChar(peek())) {
+  while (!isAtEnd() && !isSpecialChar(peek())) { 
     advance();
   }
-
   addToken(TokenType::TEXT);
 }
 
@@ -172,15 +171,18 @@ void Lexer::string() {
   while (!isAtEnd() && peek() != '"') {
     if (peek() == '\n') {
       error("Unterminated string", SourceSpan{start_pos, cur_pos});
+      addToken(TokenType::STRING, std::string_view{});
       return;
     }
     advance();
   }
+  
   if (isAtEnd()) {
     error("Unterminated string", SourceSpan{start_pos, cur_pos});
+    addToken(TokenType::STRING, std::string_view{});
     return;
   }
-
+  
   advance();
   std::string_view value{getSource().data() + start + 1, (current - start) - 2};
   addToken(TokenType::STRING, value);

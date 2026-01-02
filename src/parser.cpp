@@ -2,7 +2,6 @@
 #include "source.hpp"
 #include "token_type.hpp"
 #include <cassert>
-#include <iostream>
 
 Parser::Parser(std::vector<Token> tokens) : tokens_(std::move(tokens)) {}
 
@@ -69,28 +68,7 @@ Document::Paragraph Parser::paragraph() {
     return para;
 }
 
-// Returns true if paragraph should end
-bool Parser::handleNewlineInParagraph(TextAccumulator& text, bool& consumed_any) {
-    if (!check(TokenType::NEWLINE)) {
-        return false;
-    }
-    
-    // Double newline ends paragraph
-    if (current + 1 < tokens_.size() &&
-        tokens_[current + 1].getType() == TokenType::NEWLINE) {
-        return true;
-    }
-    
-    // Single newline becomes a space
-    const Token &newline = advance();
-    if (text.isEmpty()) {
-        text.append(" ", newline.span().start);
-    } else {
-        text.appendSpace();
-    }
-    consumed_any = true;
-    return false;
-}
+
 std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
     std::vector<Document::InlinePtr> inlines;
     TextAccumulator text;
@@ -144,6 +122,11 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
         const Token &token = advance();
         text.append(token.getLexeme(), token.span().start);
     }
+
+    if (isAtEnd() && endToken != TokenType::EOF_ && endToken != TokenType::NEWLINE) {
+      // Warn about unclosed
+      error("Unclosed formatting (expected closing delimiter)", previous().span());
+    }
     
     flush_text();
     return inlines;
@@ -155,10 +138,11 @@ Document::InlinePtr Parser::parseBold() {
     
     advance(); // consume opening *
     
-    // Recursively parse content until closing *
     auto children = parseInlines(TokenType::STAR);
     
-    if (check(TokenType::STAR)) {
+    if (!check(TokenType::STAR)) {
+        error("Expected closing '*'", peek().span());
+    } else {
         advance(); // consume closing *
     }
     
@@ -174,8 +158,10 @@ Document::InlinePtr Parser::parseItalic() {
     
     auto children = parseInlines(TokenType::UNDERSCORE);
     
-    if (check(TokenType::UNDERSCORE)) {
-        advance(); // consume closing _
+    if (!check(TokenType::UNDERSCORE)) {
+        error("Expected closing '_'", peek().span());
+    } else {
+      advance(); // consume closing _
     }
     
     span.end = previous().span().end;
@@ -194,8 +180,10 @@ Document::InlinePtr Parser::parseCode() {
         content += token.getLexeme();
     }
     
-    if (check(TokenType::BACKTICK)) {
-        advance(); // consume closing `
+    if (!check(TokenType::BACKTICK)) {
+        error("Expected closing '`'", peek().span());
+    } else {
+      advance(); // consume closing `
     }
     
     span.end = previous().span().end;
@@ -212,15 +200,9 @@ Document::InlinePtr Parser::parseSplice() {
 
   Document::ExprPtr e = equality();
 
-  if (isAtEnd()) {
-    std::cerr << "Unterminated splice, expect ')'\n";
-  }
-
   consume(TokenType::RIGHT_PAREN, "Unterminated splice: expected ')'");
   span.end = previous().span().end;
   return Document::Inline::make_splice(std::move(e), span);
-
-
 
 }
 
@@ -261,18 +243,25 @@ Document::Expr::Ptr Parser::unary() {
 
 Document::ExprPtr Parser::primary() {
   if (match(TokenType::NUMBER)) {
-    const Token& t = previous();
-    double v = std::stod(std::string(t.getLexeme()));
-    return Document::Expr::make_num(v, t.span());
+      const Token& t = previous();
+      try {
+          double v = std::stod(std::string(t.getLexeme()));
+          return Document::Expr::make_num(v, t.span());
+      } catch (const std::exception& e) {
+          error("Invalid number format", t.span());
+          return Document::Expr::make_num(0.0, t.span());
+      }
   }
 
   if (match(TokenType::LEFT_PAREN)) {
     Document::ExprPtr e = equality();
-    consume(TokenType::RIGHT_PAREN, "Expect ')' in expression\n");
+    consume(TokenType::RIGHT_PAREN, "Expected ')' in expression\n");
     return e;
   }
 
-  throw error(peek(), "Expected expression.");
+  error("Expected number or '('", peek().span());
+  synchronize();
+  return Document::Expr::make_num(0.0, previous().span()); // Error placeholder
 }
 
 Document::Block Parser::block() {
@@ -329,14 +318,25 @@ bool Parser::isAtEnd() { return peek().getType() == TokenType::EOF_; }
 
 Token Parser::consume(TokenType type, std::string message) {
     if (check(type)) return advance();
-
-    throw error(peek(), message);
+    error(message, peek().span());
+    return advance();
 }
 
-
-Parser::ParseError Parser::error(Token token, std::string message) const {
-  // NEED TO MAKE THIS ACTUALLY USEFUL
-    std::cerr << "Error:" << message << "\n";
-    return ParseError{};
+void Parser::synchronize() {
+    while (!isAtEnd()) {
+      // Newline means safe sync point
+      if (previous().getType() == TokenType::NEWLINE) return;
+      
+      switch (peek().getType()) {
+          case TokenType::HEADING_MARK:
+          case TokenType::HASH:
+              return;
+          default:
+              advance();
+      }
+  }
 }
 
+void Parser::error(std::string msg, SourceSpan span) {
+  diagnostics_.add(Diagnostic(ErrorLevel::Error, msg, span));
+}

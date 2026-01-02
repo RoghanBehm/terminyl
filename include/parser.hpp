@@ -1,6 +1,7 @@
 #include "document.hpp"
 #include "text_accumulator.hpp"
 #include "token.hpp"
+#include "error.hpp"
 #include <functional>
 #include <initializer_list>
 class Parser {
@@ -12,6 +13,7 @@ public:
         ParseError() : std::runtime_error("") {}
   };
   ParseError error(Token token, std::string message) const;
+  const DiagnosticSet& diagnostics() const { return diagnostics_; }
 
 private:
   const std::vector<Token> tokens_;
@@ -27,7 +29,6 @@ private:
   const Token &previous() const;
   bool isAtEnd();
   const Token &advance();
-  bool handleNewlineInParagraph(TextAccumulator &text, bool &consumed_any);
   Token consume(TokenType type, std::string message);
   std::vector<Document::InlinePtr> parseInlines(TokenType endToken = TokenType::NEWLINE);
   Document::InlinePtr parseBold();
@@ -40,7 +41,11 @@ private:
   Document::Expr::Ptr factor();
   Document::Expr::Ptr unary();
   Document::Expr::Ptr primary();
+  void synchronize();
 
   Document::Block block();
+
+  DiagnosticSet diagnostics_;
+  void error(std::string message, SourceSpan span);
   
 };
