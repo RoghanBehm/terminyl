@@ -118,6 +118,7 @@ void Emitter::wrap_paragraph(std::ostream &out,
   flatten_runs(inlines, StyleState{}, runs);
 
   StyleState current_state;
+  std::string_view last_word;
 
   for (size_t run_idx = 0; run_idx < runs.size(); ++run_idx) {
     auto const &r = runs[run_idx];
@@ -147,12 +148,31 @@ void Emitter::wrap_paragraph(std::ostream &out,
       if (needs_wrap) {
         out << '\n';
         write_indent();
-      } else if (line_len != indent && !is_punctuation(word)) {
-        if (first_word_in_run && current_state != r.style && current_state != StyleState{}) {
-          out << "\x1b[0m"; 
-          out << ' ';
-          line_len += 1;
-        } else {
+      } else if (line_len != indent) {
+        // Determine if we should add space before current word
+        bool should_add_space = true;
+        
+        // Don't add space if current word is glue-left punctuation (like comma, period)
+        if (is_punctuation(word)) {
+          char first_char = word[0];
+          if (first_char == ',' || first_char == '.' || first_char == '!' || 
+              first_char == '?' || first_char == ';' || first_char == ':') {
+            should_add_space = false;
+          }
+        }
+        
+        // Don't add space if previous word was glue-right punctuation (like $, opening brackets)
+        if (!last_word.empty() && is_punctuation(last_word)) {
+          char last_char = last_word[0];
+          if (last_char == '$' || last_char == '(' || last_char == '[' || last_char == '{') {
+            should_add_space = false;
+          }
+        }
+        
+        if (should_add_space) {
+          if (first_word_in_run && current_state != r.style && current_state != StyleState{}) {
+            out << "\x1b[0m"; 
+          }
           out << ' ';
           line_len += 1;
         }
@@ -166,6 +186,7 @@ void Emitter::wrap_paragraph(std::ostream &out,
 
       out << word;
       line_len += word_len;
+      last_word = word;
       first_word_in_run = false;
     }
   }

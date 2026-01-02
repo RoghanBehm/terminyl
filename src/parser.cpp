@@ -56,14 +56,16 @@
   }
 
 
-  Document::Paragraph Parser::paragraph() {
+
+    Document::Paragraph Parser::paragraph() {
       Document::Paragraph para;
       para.span.start = peek().span().start;
       
       para.inlines = parseInlines(TokenType::NEWLINE);
-      
-      // Skip trailing newlines
-      while (match(TokenType::NEWLINE)) {}
+
+      if (check(TokenType::NEWLINE)) {
+          advance();
+      }
       
       para.span.end = previous().span().end;
       return para;
@@ -82,16 +84,7 @@
       
       while (!isAtEnd() && !check(endToken)) {
           if (check(TokenType::NEWLINE)) {
-              // Handle double newline ending paragraph
-              if (endToken == TokenType::NEWLINE && 
-                  current + 1 < tokens_.size() &&
-                  tokens_[current + 1].getType() == TokenType::NEWLINE) {
-                  break;
-              }
-              // Single newline becomes a space
-              advance();
-              text.appendSpace();
-              continue;
+            break;
           }
           
           if (check(TokenType::STAR)) {

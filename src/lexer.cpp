@@ -54,12 +54,31 @@ void Lexer::lexToken() {
   case ' ':
   case '\t':
   case '\r':
+    // Only skip whitespace in expression mode
+    if (mode_ == LexerMode::EXPRESSION) {
+      return;
+    }
+    // In text mode, back up and let text() handle it
+    current--;
+    cur_pos.column--;
+    text();
     return;
   case '(':
+    paren_depth_++;
+    if (paren_depth_ == 1 && mode_ == LexerMode::TEXT) {
+      // Check if this is part of #( expression syntax
+      if (current >= 2 && getSource().at(current - 2) == '#') {
+        mode_ = LexerMode::EXPRESSION;
+      }
+    }
     addToken(LEFT_PAREN);
     break;
   case ')':
     addToken(RIGHT_PAREN);
+    paren_depth_--;
+    if (paren_depth_ == 0 && mode_ == LexerMode::EXPRESSION) {
+      mode_ = LexerMode::TEXT;
+    }
     break;
 
   case '[':
@@ -105,7 +124,18 @@ void Lexer::lexToken() {
     addToken(match('=') ? GREATER_EQUAL : GREATER);
     break;
   case '\n':
-    addToken(NEWLINE);
+    // Check if this is a blank line (double newline)
+    if (peek() == '\n') {
+      // Consume the second newline
+      advance();
+      // Skip any additional newlines (triple+)
+      while (peek() == '\n') {
+        advance();
+      }
+      addToken(NEWLINE);
+    }
+    // Single newline within text - don't emit token, just continue
+    // The text will wrap naturally
     break;
   case '=':
     if (start_pos.column == 1)
@@ -153,6 +183,8 @@ void Lexer::text() {
   while (!isAtEnd() && !isSpecialChar(peek())) { 
     advance();
   }
+  // In text mode, include trailing spaces as part of text token
+  // This preserves natural spacing like "text, more text"
   addToken(TokenType::TEXT);
 }
 

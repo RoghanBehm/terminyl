@@ -10,14 +10,17 @@ any formatted output directly in the shell.
 == Key Features
 
 - Multi-level headings with box-drawing characters
+
 - Inline formatting: *bold*, _italic_, and `code spans`
+
 - Expression evaluation for dynamic content
 
-== Budget Analysis
+== Sales Report
 
-Initial budget: $#(10000)
-Expenses to date: $#(7350)
-Remaining: $#(10000 - 7350)
-Burn rate: #((7350 / 10000) * 100)%
+Q1 Revenue: $#(45000)
 
-Run with: `terminyl report.termy`
+Q2 Revenue: $#(52000)
+
+Total: $#(45000 + 52000)
+
+Growth rate: #(((52000 - 45000) / 45000) * 100)%

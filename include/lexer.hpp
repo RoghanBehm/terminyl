@@ -23,6 +23,11 @@ public:
     const DiagnosticSet& diagnostics() const { return diagnostics_; }
 
 private:
+    enum class LexerMode {
+        TEXT,       // Normal text mode - spaces significant
+        EXPRESSION  // Expression mode - skip whitespace
+    };
+    
     char peekNext();
     char advance();
     void skip_spaces();
@@ -41,6 +46,8 @@ private:
     SourcePos cur_pos{1, 1};
     std::vector<Token> tokens;
     DiagnosticSet diagnostics_;
+    LexerMode mode_ = LexerMode::TEXT;
+    int paren_depth_ = 0;
     void error(std::string message, SourceSpan span);
     
 };

@@ -6,9 +6,9 @@ Terminyl is evolving toward a programmable markup system, inspired by Typst, whe
 
 ## Example
 ```bash
-build/terminyl src/test.termy
+build/terminyl src/report.termy
 ```
-Sample input in `src/test.termy`.
+Sample input in `src/report.termy`.
 
 ## Building
 ```bash
@@ -34,17 +34,7 @@ Terminyl uses a multi-stage pipeline:
 
 ## Current Example
 
-Input:
-```termy
-= Status Report
-
-Completed: #(45 + 12) tasks
-Success rate: #((45 / 50) * 100)%
-```
-
-Output: [rendered with box-drawing and formatting]
-
-> **Note**: Expression evaluation is implemented. Variables and control flow coming next.
+![Demo](terminyl.png)
 
 ## Features
 
