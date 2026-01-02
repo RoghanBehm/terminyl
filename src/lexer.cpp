@@ -1,10 +1,11 @@
 #include "lexer.hpp"
+#include "source.hpp"
 #include "token_type.hpp"
 #include <cstdio>
 #include <iostream>
 // #include <iostream>
 
-Lexer::Lexer(std::string &source) : source_(source) {}
+Lexer::Lexer(const std::string &source) : source_(source) {}
 
 bool Lexer::isAtEnd() { return current >= getSource().length(); }
 
@@ -44,7 +45,7 @@ bool Lexer::match(char expected) {
   if (getSource().at(current) != expected)
     return false;
 
-  current++;
+  advance();
   return true;
 }
 
@@ -137,14 +138,15 @@ std::vector<Token> Lexer::lexTokens() {
   tokens.emplace_back(TokenType::EOF_, std::string_view{},
                       SourceSpan{cur_pos, cur_pos}, std::monostate{});
 
+  /* DEBUG
   for (auto const &t : tokens) {
     std::cout << Token::to_string(t.getType()) << " '" << t.getLexeme()
               << "'\n";
   }
-
+*/
   return tokens;
-}
-
+  }
+  
 void Lexer::text() {
   while (!isSpecialChar(peek())) {
     advance();
@@ -169,18 +171,17 @@ void Lexer::number() {
 void Lexer::string() {
   while (!isAtEnd() && peek() != '"') {
     if (peek() == '\n') {
-      std::cerr << "Unterminated string\n";
+      error("Unterminated string", SourceSpan{start_pos, cur_pos});
       return;
     }
     advance();
   }
   if (isAtEnd()) {
-    std::cerr << "Unterminated string\n";
+    error("Unterminated string", SourceSpan{start_pos, cur_pos});
     return;
   }
 
   advance();
-
   std::string_view value{getSource().data() + start + 1, (current - start) - 2};
   addToken(TokenType::STRING, value);
 }
@@ -191,3 +192,7 @@ bool Lexer::isSpecialChar(char c) {
 }
 
 bool Lexer::isDigit(char c) { return c >= '0' && c <= '9'; }
+
+void Lexer::error(std::string message, SourceSpan span) {
+  diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
+}

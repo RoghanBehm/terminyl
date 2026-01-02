@@ -4,10 +4,11 @@
 #include <vector>
 #include "token.hpp"
 #include "token_type.hpp"
+#include "error.hpp"
 
 class Lexer {
 public:
-    explicit Lexer(std::string& source);
+    explicit Lexer(const std::string& source);
 
     Token next();
     char peek();
@@ -19,6 +20,7 @@ public:
     void heading();
     std::vector<Token> lexTokens();
     const std::string& getSource() const { return source_; }
+    const DiagnosticSet& diagnostics() const { return diagnostics_; }
 
 private:
     char peekNext();
@@ -37,7 +39,8 @@ private:
     std::size_t current = 0;
     SourcePos start_pos{1, 1};
     SourcePos cur_pos{1, 1};
-    std::size_t line = 1;
     std::vector<Token> tokens;
+    DiagnosticSet diagnostics_;
+    void error(std::string message, SourceSpan span);
     
 };

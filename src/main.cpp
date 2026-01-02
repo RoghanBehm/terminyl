@@ -3,6 +3,7 @@
 #include "io.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
+#include "error.hpp"
 #include <iostream>
 #include <string>
 
@@ -15,9 +16,15 @@ int main(int argc, char** argv) {
     }
 
     try {
-        std::string source = read_file(argv[1]);
-        Lexer lex(source);
+        SourceFile src{argv[1], read_file(argv[1])};
+        Lexer lex(src.content);
         auto tokens = lex.lexTokens();
+
+        if (lex.diagnostics().has_errors()) {
+            lex.diagnostics().report_all(src);
+            return 1;
+        }
+
         auto doc = Parser(std::move(tokens)).parse();
         
         Lowerer lowerer(doc);

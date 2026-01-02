@@ -17,6 +17,7 @@ set(SOURCES
     src/emitter.cpp
     src/document.cpp
     src/lowerer.cpp
+    src/error.cpp
 )
 
 add_library(core STATIC
