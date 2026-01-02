@@ -1,10 +1,11 @@
 #include "document.hpp"
+#include "error.hpp"
 #include <optional>
 
 class Lowerer {
 public:
   explicit Lowerer(const Document &doc) : doc_(doc) {}
-
+  const DiagnosticSet& diagnostics() const { return diagnostics_; }
   Document lower(); // lower doc_ into a new Document
   const Document& getDoc() const { return doc_; }
 
@@ -13,7 +14,8 @@ private:
 
   std::vector<Document::InlinePtr>
   lowerInlines(const std::vector<Document::InlinePtr>& inlines);
-
+  void error(std::string message, SourceSpan span);
+  DiagnosticSet diagnostics_;
   struct Error {
     std::string message;
   };
@@ -27,6 +29,6 @@ private:
   template<typename T>
   std::optional<Value> tryBinaryOp(const Value& lhs, const Value& rhs, TokenType op);
 
-  Value evalBinaryOp(const Value& lhs, const Value& rhs, TokenType op);
+  Value evalBinaryOp(const Value& lhs, const Value& rhs, TokenType op, SourceSpan span);
   std::string toString(const Value& v);
 };

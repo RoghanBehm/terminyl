@@ -34,21 +34,23 @@ int main(int argc, char** argv) {
         bool has_errors = false;
         
         if (lexer.diagnostics().has_errors()) {
+            std::cerr << "=== Lexer Errors ===\n";
             lexer.diagnostics().report_all(src);
             has_errors = true;
         }
-        
+
         if (parser.diagnostics().has_errors()) {
+            std::cerr << "\n=== Parser Errors ===\n";
             parser.diagnostics().report_all(src);
             has_errors = true;
         }
-        
-        /* TO BE IMPLEMENTED
+
         if (lowerer.diagnostics().has_errors()) {
+            std::cerr << "\n=== Evaluation Errors ===\n";
             lowerer.diagnostics().report_all(src);
             has_errors = true;
         }
-        */
+        
         if (has_errors) {
             return 1;
         }

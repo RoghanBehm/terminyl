@@ -1,5 +1,4 @@
 #include "document.hpp"
-#include "text_accumulator.hpp"
 #include "token.hpp"
 #include "error.hpp"
 #include <functional>
@@ -42,9 +41,7 @@ private:
   Document::Expr::Ptr unary();
   Document::Expr::Ptr primary();
   void synchronize();
-
   Document::Block block();
-
   DiagnosticSet diagnostics_;
   void error(std::string message, SourceSpan span);
   

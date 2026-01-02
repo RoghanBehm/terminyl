@@ -32,15 +32,29 @@ Terminyl uses a multi-stage pipeline:
 - **Lowerer**: evaluates expressions and expands them into concrete document elements
 - **Emitter**: handles layout, wrapping, and terminal styling
 
+## Current Example
+
+Input:
+```termy
+= Status Report
+
+Completed: #(45 + 12) tasks
+Success rate: #((45 / 50) * 100)%
+```
+
+Output: [rendered with box-drawing and formatting]
+
+> **Note**: Expression evaluation is implemented. Variables and control flow coming next.
+
 ## Features
 
 ### Markup (implemented)
 - Multi-level headings with UTF-8 box-drawing styles
 - Paragraphs with word wrapping
 - Inline formatting:
-  - Bold (`*text*`)
-  - Italic (`_text_`)
-  - Code spans (`` `code` ``)
+- Bold: `*text*`
+- Italic: `_text_`
+- Code spans: ``  `text`  ``
 
 ### Expressions (implemented, minimal)
 - Inline expression splices using `#( … )`

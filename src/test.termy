@@ -1,62 +1,23 @@
-= Terminyl Demo
+= Project Status Report
 
-A terminal-first typesetting language: write lightweight markup, get nicely laid-out ANSI output.
-This document is a quick tour of the current feature set: *bold*, _italics_, and `code spans`,
-all wrapped to a fixed width so it still reads well in a narrow terminal.
+Last updated: _January 2026_
 
-== Why it exists
+This project demonstrates a *terminal-first markup language* with 
+expression evaluation. Text wraps naturally to fit the terminal 
+width, making it ideal for generating reports, documentation, or 
+any formatted output directly in the shell.
 
-Most “pretty text” tools assume a GUI. Terminyl assumes your output is going to `stdout`,
-a log file, or a CI job. That means:
+== Key Features
 
-- predictable wrapping
-- readable headings at multiple levels
-- inline styles that survive copy/paste and diffing
+- Multi-level headings with box-drawing characters
+- Inline formatting: *bold*, _italic_, and `code spans`
+- Expression evaluation for dynamic content
 
+== Budget Analysis
 
-== Inline markup
+Initial budget: $#(10000)
+Expenses to date: $#(7350)
+Remaining: $#(10000 - 7350)
+Burn rate: #((7350 / 10000) * 100)%
 
-*_bold italic_* _*italic bold*_
-
-You can mix styles inside a sentence: _emphasis_ for prose, *bold* for highlights, and `code` for tokens
-It should handle punctuation cleanly: `--help`, `--width=72`, `std::vector<int>`, and `snake_case_names`.
-
-A realistic sentence:
-When the lexer sees `*stars*` or `_underscores_`, the parser decides whether it’s *markup* or literal text,
-and the emitter turns it into ANSI without breaking wrapping.
-
-== "Looks like a README" paragraph
-
-Terminyl is meant for documentation that still looks good when read through `less` or in a build log.
-For example: a short explanation, followed by a little pseudo-API, then a note with emphasis.
-
-`terminyl <inputfile>`
-
-If the input contains markup inside code spans like `*this*` or `_this_`, it should remain literal.
-
-=== A small example block
-
-Here’s a fake snippet embedded as inline code (so it tests wrapping of long code tokens too):
-`int main(int argc, char** argv) { return argc > 1 ? 0 : 64; }`
-
-
-==== Notes
-
-- `code spans` should be immune to *bold* and _italics_ parsing.
-- *bold* and _italics_ should not “leak” past their closing marker.
-- wrapping should work even when the line contains a lot of styled runs.
-
-===== Final tiny header
-
-If you can read this comfortably in the terminal, the demo did its job.
-
-
-Stress test: *bold* then `_literal underscores_` then `code_with_*_and__` then _italics_ then `--flag=123` ok.
-
-#(1+2)
-
-#(4)
-
-hi #(10-1) 
-
-#(1==1) #(1!=2) #(2>=2) #(3<=2) #(4/8)
+Run with: `terminyl report.termy`

@@ -2,8 +2,6 @@
 #include "source.hpp"
 #include "token_type.hpp"
 #include <cstdio>
-#include <iostream>
-// #include <iostream>
 
 Lexer::Lexer(const std::string &source) : source_(source) {}
 
@@ -53,6 +51,10 @@ void Lexer::lexToken() {
   using enum TokenType;
   char c = advance();
   switch (c) {
+  case ' ':
+  case '\t':
+  case '\r':
+    return;
   case '(':
     addToken(LEFT_PAREN);
     break;

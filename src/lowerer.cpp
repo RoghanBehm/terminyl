@@ -1,6 +1,5 @@
 #include "lowerer.hpp"
 #include "token_type.hpp"
-#include <iostream>
 #include <optional>
 #include <sstream>
 
@@ -92,9 +91,10 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
         } else if constexpr (std::is_same_v<T, Document::Expr::Binary>) {
           auto lhs = eval(*node.lhs);
           auto rhs = eval(*node.rhs);
-          return evalBinaryOp(lhs, rhs, node.op.getType());
+           return evalBinaryOp(lhs, rhs, node.op.getType(), expr.span);
         } else {
-          return Value{Error{"Lowerer::eval(): Unhandled expr alternative"}};
+          error("Unhandled expression type", expr.span);
+          return Value{Error{"Unhandled expr alternative"}};
         }
       },
       expr.node);
@@ -134,7 +134,7 @@ std::optional<Lowerer::Value> Lowerer::tryBinaryOp(const Value& lhs, const Value
     }
 }
 
-Lowerer::Value Lowerer::evalBinaryOp(const Value& lhs, const Value& rhs, TokenType op) {
+Lowerer::Value Lowerer::evalBinaryOp(const Value& lhs, const Value& rhs, TokenType op, SourceSpan span) {
     if (auto result = tryBinaryOp<double>(lhs, rhs, op)) return *result;
     
     // Mixed-type equality comparisons
@@ -146,5 +146,10 @@ Lowerer::Value Lowerer::evalBinaryOp(const Value& lhs, const Value& rhs, TokenTy
         return Value{toString(lhs) + toString(rhs)};
     }
     
-    throw std::runtime_error("Type mismatch for operator");
+    error("Type mismatch for operator", span);
+    return Value{0.0}; // Placeholder
+}
+
+void Lowerer::error(std::string message, SourceSpan span) {
+  diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
 }
