@@ -8,7 +8,6 @@ Emitter::Emitter(Style s) : style_(std::move(s)) {}
 
 void Emitter::render(std::ostream &out, const Document &doc) const {
   for (const auto &blk : doc.blocks()) {
-    // Type-based dispatch
     std::visit(
         [&](const auto &b) {
           using T = std::remove_cvref_t<decltype(b)>;
@@ -149,17 +148,18 @@ void Emitter::wrap_paragraph(std::ostream &out,
         out << '\n';
         write_indent();
       } else if (line_len != indent) {
-        // Determine if we should add space before current word
+ 
         bool should_add_space = true;
         
         // Don't add space if current word is glue-left punctuation (like comma, period)
-        if (is_punctuation(word)) {
-          char first_char = word[0];
-          if (first_char == ',' || first_char == '.' || first_char == '!' || 
-              first_char == '?' || first_char == ';' || first_char == ':') {
-            should_add_space = false;
-          }
+      if (is_punctuation(word)) {
+        char first_char = word[0];
+        if (first_char == ',' || first_char == '.' || first_char == '!' || 
+            first_char == '?' || first_char == ';' || first_char == ':' ||
+            first_char == '%') {  // ← Add this
+          should_add_space = false;
         }
+      }
         
         // Don't add space if previous word was glue-right punctuation (like $, opening brackets)
         if (!last_word.empty() && is_punctuation(last_word)) {
