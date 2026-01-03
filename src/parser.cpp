@@ -1,4 +1,4 @@
-  #include "parser.hpp"
+#include "parser.hpp"
   #include "source.hpp"
   #include "token_type.hpp"
   #include "text_accumulator.hpp"
@@ -130,12 +130,15 @@
       SourceSpan span;
       span.start = peek().span().start;
       
+      // Save the opening token's span for error reporting
+      SourceSpan opening_span = peek().span();
+      
       advance(); // consume opening *
       
       auto children = parseInlines(TokenType::STAR);
       
       if (!check(TokenType::STAR)) {
-          error("Expected closing '*'", peek().span());
+          error("Expected closing '*'", opening_span);
       } else {
           advance(); // consume closing *
       }
@@ -148,12 +151,15 @@
       SourceSpan span;
       span.start = peek().span().start;
       
+      // Save the opening token's span for error reporting
+      SourceSpan opening_span = peek().span();
+      
       advance(); // consume opening _
       
       auto children = parseInlines(TokenType::UNDERSCORE);
       
       if (!check(TokenType::UNDERSCORE)) {
-          error("Expected closing '_'", peek().span());
+          error("Expected closing '_'", opening_span);
       } else {
         advance(); // consume closing _
       }
@@ -165,6 +171,10 @@
   Document::InlinePtr Parser::parseCode() {
       SourceSpan span;
       span.start = peek().span().start;
+      
+      // Save the opening token's span for error reporting
+      SourceSpan opening_span = peek().span();
+      
       advance(); // consume opening `
       
       // No recursive evaluation inside code blocks
@@ -175,7 +185,7 @@
       }
       
       if (!check(TokenType::BACKTICK)) {
-          error("Expected closing '`'", peek().span());
+          error("Expected closing '`'", opening_span);
       } else {
         advance(); // consume closing `
       }

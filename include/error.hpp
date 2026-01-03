@@ -11,6 +11,14 @@ enum class ErrorLevel {
     Fatal
 };
 
+namespace Colour {
+    inline const char* RED = "\033[1;31m";
+    inline const char* YELLOW = "\033[1;33m";
+    inline const char* BLUE = "\033[1;34m";
+    inline const char* RESET = "\033[0m";
+    inline const char* BOLD = "\033[1m";
+}
+
 struct SourceFile {
     std::string filename;
     std::string content;
@@ -35,6 +43,14 @@ struct SourceFile {
         
         return "";
     }
+    
+    size_t get_line_count() const {
+        size_t count = 1;
+        for (char c : content) {
+            if (c == '\n') count++;
+        }
+        return count;
+    }
 };
 
 class Diagnostic {
@@ -49,8 +65,11 @@ private:
     ErrorLevel level_;
     std::string message_;
     SourceSpan span_;
+    
+    void print_snippet(const SourceFile& source, std::ostream& out) const;
+    const char* get_level_colour() const;
+    std::string get_level_name() const;
 };
-
 
 class DiagnosticSet {
 public:
