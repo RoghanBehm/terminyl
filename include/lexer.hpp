@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 #include "token.hpp"
 #include "token_type.hpp"
@@ -38,6 +39,9 @@ private:
     void string();
     bool isAtEnd();
     bool isDigit(char c);
+    bool isAlpha(char c);
+    bool isAlphaNumeric(char c);
+    void identifier();
     bool isSpecialChar(char c);
     const std::string& source_;
     std::size_t start = 0;
@@ -50,4 +54,10 @@ private:
     int paren_depth_ = 0;
     void error(std::string message, SourceSpan span);
     
+    // Reserved words
+    inline static const std::unordered_map<std::string_view, TokenType> keywords = {
+        {"true", TokenType::TRUE}, {"false", TokenType::FALSE},
+        {"let", TokenType::LET},   {"if", TokenType::IF},
+        {"else", TokenType::ELSE}, {"fn", TokenType::FN},
+    };
 };

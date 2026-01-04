@@ -1,6 +1,6 @@
 #include "document.hpp"
-#include "token.hpp"
 #include "error.hpp"
+#include "token.hpp"
 #include <functional>
 #include <initializer_list>
 class Parser {
@@ -8,7 +8,7 @@ public:
   Parser(std::vector<Token> tokens);
   Document parse();
 
-  const DiagnosticSet& diagnostics() const { return diagnostics_; }
+  const DiagnosticSet &diagnostics() const { return diagnostics_; }
 
 private:
   const std::vector<Token> tokens_;
@@ -19,13 +19,16 @@ private:
   bool check(TokenType type);
   bool match(TokenType type);
   bool match(std::initializer_list<TokenType> types);
-  Document::Expr::Ptr laparse(const std::function<Document::Expr::Ptr()>& op_type, std::initializer_list<TokenType> types);
+  Document::Expr::Ptr
+  laparse(const std::function<Document::Expr::Ptr()> &op_type,
+          std::initializer_list<TokenType> types);
   const Token &peek() const;
   const Token &previous() const;
   bool isAtEnd();
   const Token &advance();
   Token consume(TokenType type, std::string message);
-  std::vector<Document::InlinePtr> parseInlines(TokenType endToken = TokenType::NEWLINE);
+  std::vector<Document::InlinePtr>
+  parseInlines(TokenType endToken = TokenType::NEWLINE);
   Document::InlinePtr parseBold();
   Document::InlinePtr parseItalic();
   Document::InlinePtr parseCode();
@@ -40,5 +43,5 @@ private:
   Document::Block block();
   DiagnosticSet diagnostics_;
   void error(std::string message, SourceSpan span);
-  
+
 };

@@ -64,23 +64,28 @@ void Lexer::lexToken() {
     text();
     return;
   case '(':
-    paren_depth_++;
-    if (paren_depth_ == 1 && mode_ == LexerMode::TEXT) {
-      // Check if this is part of #( expression syntax
-      if (current >= 2 && getSource().at(current - 2) == '#') {
-        mode_ = LexerMode::EXPRESSION;
-      }
+    if (mode_ == LexerMode::EXPRESSION) {
+      paren_depth_++;
+      addToken(TokenType::LEFT_PAREN);
+    } else {
+      // treat as normal text
+      current--;
+      cur_pos.column--;
+      text();
     }
-    addToken(LEFT_PAREN);
     break;
   case ')':
-    addToken(RIGHT_PAREN);
-    paren_depth_--;
-    if (paren_depth_ == 0 && mode_ == LexerMode::EXPRESSION) {
-      mode_ = LexerMode::TEXT;
+    if (mode_ == LexerMode::EXPRESSION) {
+      addToken(TokenType::RIGHT_PAREN);
+      paren_depth_--;
+      if (paren_depth_ == 0)
+        mode_ = LexerMode::TEXT;
+    } else {
+      current--;
+      cur_pos.column--;
+      text();
     }
     break;
-
   case '[':
     addToken(LEFT_SQ_BRACKET);
     break;
@@ -97,7 +102,15 @@ void Lexer::lexToken() {
     addToken(SLASH);
     break;
   case '#':
-    addToken(HASH);
+    if (peek() == '(') {
+      advance();
+      paren_depth_ = 1;
+      mode_ = LexerMode::EXPRESSION;
+      addToken(TokenType::HASH);
+      addToken(TokenType::LEFT_PAREN);
+    } else {
+      addToken(TokenType::HASH);
+    }
     break;
   case '"':
     string();
@@ -124,18 +137,14 @@ void Lexer::lexToken() {
     addToken(match('=') ? GREATER_EQUAL : GREATER);
     break;
   case '\n':
-    // Check if this is a blank line (double newline)
     if (peek() == '\n') {
-      // Consume the second newline
       advance();
-      // Skip any additional newlines (triple+)
+
       while (peek() == '\n') {
         advance();
       }
       addToken(NEWLINE);
     }
-    // Single newline within text - don't emit token, just continue
-    // The text will wrap naturally
     break;
   case '=':
     if (start_pos.column == 1)
@@ -144,11 +153,19 @@ void Lexer::lexToken() {
       addToken(match('=') ? EQUAL_EQUAL : EQUAL);
     break;
   default:
-    if (isDigit(c))
-      number();
-    else
-      text();
+    if (mode_ == LexerMode::EXPRESSION) {
+      if (isDigit(c))
+        number();
+      else if (isAlpha(c))
+        identifier();
+      else
+        error("Unknown expression", SourceSpan{start_pos, cur_pos});
+    } else {
+      current--;
+    cur_pos.column--;
+    text();
     break;
+    }
   }
 }
 
@@ -177,14 +194,12 @@ std::vector<Token> Lexer::lexTokens() {
   }
 */
   return tokens;
-  }
-  
+}
+
 void Lexer::text() {
-  while (!isAtEnd() && !isSpecialChar(peek())) { 
+  while (!isAtEnd() && !isSpecialChar(peek())) {
     advance();
   }
-  // In text mode, include trailing spaces as part of text token
-  // This preserves natural spacing like "text, more text"
   addToken(TokenType::TEXT);
 }
 
@@ -210,24 +225,46 @@ void Lexer::string() {
     }
     advance();
   }
-  
+
   if (isAtEnd()) {
     error("Unterminated string", SourceSpan{start_pos, cur_pos});
     addToken(TokenType::STRING, std::string_view{});
     return;
   }
-  
+
   advance();
   std::string_view value{getSource().data() + start + 1, (current - start) - 2};
   addToken(TokenType::STRING, value);
 }
 
 bool Lexer::isSpecialChar(char c) {
-  static constexpr std::string_view specialChars = "\n*_`#(),+-/=<>!";
-  return specialChars.find(c) != std::string_view::npos;
+  if (mode_ == LexerMode::EXPRESSION) {
+    static constexpr std::string_view exprSpecial = "\n*_`#(),+-/=<>!";
+    return exprSpecial.find(c) != std::string_view::npos;
+  } else {
+    static constexpr std::string_view textSpecial = "\n*_`#";
+    return textSpecial.find(c) != std::string_view::npos;
+  }
 }
 
 bool Lexer::isDigit(char c) { return c >= '0' && c <= '9'; }
+
+bool Lexer::isAlpha(char c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+bool Lexer::isAlphaNumeric(char c) { return isAlpha(c) || isDigit(c); }
+
+void Lexer::identifier() {
+  while (isAlphaNumeric(peek()))
+    advance();
+
+  std::string_view text{source_.data() + start,
+                        static_cast<size_t>(current - start)};
+  auto it = keywords.find(text);
+  TokenType type = (it != keywords.end()) ? it->second : TokenType::IDENTIFIER;
+  addToken(type);
+}
 
 void Lexer::error(std::string message, SourceSpan span) {
   diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));

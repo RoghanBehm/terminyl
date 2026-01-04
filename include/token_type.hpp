@@ -21,6 +21,12 @@ enum class TokenType : std::uint8_t {
     UNDERSCORE, // '_'
     EOF_,
     NUMBER,
+    TRUE,
+    FALSE,
+    LET,
+    ELSE,
+    IF, 
+    FN,
 
 
     // One or two character tokens.
