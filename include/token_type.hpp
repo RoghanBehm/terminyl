@@ -1,7 +1,8 @@
 #pragma once
 
-#include <string>
-enum class TokenType {
+#include <cstdint>
+
+enum class TokenType : std::uint8_t {
     // Delimiters / symbols
     NEWLINE,
     HASH,       // '#'

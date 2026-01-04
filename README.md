@@ -38,6 +38,16 @@ Terminyl uses a multi-stage pipeline:
 
 ## Features
 
+### Error Reporting
+
+The document compiler features helpful, pretty error messages with:
+- Precise source locations with line and column numbers
+- Colour-coded by severity (red for errors, yellow for warnings)
+- Source context with the offending line and surrounding code
+- Arrows pointing to exact error positions
+
+![Demo](terminyl_error.png)
+
 ### Markup (implemented)
 - Multi-level headings with UTF-8 box-drawing styles
 - Paragraphs with word wrapping

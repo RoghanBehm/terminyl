@@ -30,14 +30,14 @@ Document::Expr::Ptr Document::Expr::make_binary(Document::Expr::Ptr lhs,
                                                 Document::Expr::Ptr rhs,
                                                 SourceSpan sp) {
   return std::make_shared<Document::Expr>(
-      Document::Expr::Binary{std::move(lhs), std::move(op), std::move(rhs)},
+      Document::Expr::Binary{std::move(lhs), op, std::move(rhs)},
       sp);
 }
 
 Document::Expr::Ptr
 Document::Expr::make_unary(Token op, Document::Expr::Ptr rhs, SourceSpan sp) {
   return std::make_shared<Document::Expr>(
-      Document::Expr::Unary{std::move(op), std::move(rhs)}, sp);
+      Document::Expr::Unary{op, std::move(rhs)}, sp);
 }
 
 Document::Expr::Ptr Document::Expr::make_num(double v, SourceSpan sp) {

@@ -18,7 +18,7 @@ std::size_t get_terminal_width() {
     if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
         return csbi.srWindow.Right - csbi.srWindow.Left + 1;
     }
-    return 80; // fallback
+    return 80;
 }
 #else
 #include <sys/ioctl.h>
@@ -29,7 +29,7 @@ std::size_t get_terminal_width() {
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &w) == 0 && w.ws_col > 0) {
         return w.ws_col;
     }
-    return 80; // fallback
+    return 80;
 }
 #endif
 

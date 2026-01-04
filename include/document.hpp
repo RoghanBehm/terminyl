@@ -25,7 +25,7 @@ public:
   SourceSpan span{};
 
   
-  Expr(Num n, SourceSpan sp) : node(std::move(n)), span(sp) {}
+  Expr(Num n, SourceSpan sp) : node(n), span(sp) {}
   Expr(Var v, SourceSpan sp) : node(std::move(v)), span(sp) {}
   Expr(Str s, SourceSpan sp) : node(std::move(s)), span(sp) {}
   Expr(Call c, SourceSpan sp) : node(std::move(c)), span(sp) {}

@@ -29,7 +29,6 @@ struct Style {
 struct Run {
   std::string text;
   StyleState style;
-  bool glue_left;
 };
 
 class Emitter {
@@ -51,4 +50,6 @@ private:
   void flatten_runs(const std::vector<Document::InlinePtr> &inlines,
                     StyleState current_style, std::vector<Run> &out) const;
   bool is_punctuation(std::string_view s) const;
+  bool should_glue_left(std::string_view s) const;
+  bool should_glue_right(std::string_view s) const;
 };

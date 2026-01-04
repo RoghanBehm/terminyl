@@ -1,5 +1,6 @@
 #include "token.hpp"
 #include "token_type.hpp"
+#include "string"
 
 Token::Token(TokenType type, std::string_view lexeme, SourceSpan span,
              Literal value = std::monostate{})
@@ -43,27 +44,27 @@ std::string Token::to_string(TokenType type) {
   case NUMBER:
     return "NUMBER";
   case BANG:
-    return "NUMBER";
+    return "BANG";
   case BANG_EQUAL:
-    return "NUMBER";
+    return "BANG_EQUAL";
   case EQUAL:
-    return "NUMBER";
+    return "EQUAL";
   case EQUAL_EQUAL:
-    return "NUMBER";
+    return "EQUAL_EQUAL";
   case GREATER:
-    return "NUMBER";
+    return "GREATER";
   case GREATER_EQUAL:
-    return "NUMBER";
+    return "GREATER_EQUAL";
   case LESS:
-    return "NUMBER";
+    return "LESS";
   case LESS_EQUAL:
-    return "NUMBER";
+    return "LESS_EQUAL";
   case PLUS:
-    return "NUMBER";
+    return "PLUS";
   case SLASH:
-    return "NUMBER";
+    return "SLASH";
   case MINUS:
-    return "NUMBER";
+    return "MINUS";
   default:
     return "IDK";
   }

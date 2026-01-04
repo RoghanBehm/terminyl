@@ -7,11 +7,7 @@ class Parser {
 public:
   Parser(std::vector<Token> tokens);
   Document parse();
-  class ParseError : public std::runtime_error {
-    public:
-        ParseError() : std::runtime_error("") {}
-  };
-  ParseError error(Token token, std::string message) const;
+
   const DiagnosticSet& diagnostics() const { return diagnostics_; }
 
 private:
@@ -23,7 +19,7 @@ private:
   bool check(TokenType type);
   bool match(TokenType type);
   bool match(std::initializer_list<TokenType> types);
-  Document::Expr::Ptr laparse(std::function<Document::Expr::Ptr()> op_type, std::initializer_list<TokenType> types);
+  Document::Expr::Ptr laparse(const std::function<Document::Expr::Ptr()>& op_type, std::initializer_list<TokenType> types);
   const Token &peek() const;
   const Token &previous() const;
   bool isAtEnd();

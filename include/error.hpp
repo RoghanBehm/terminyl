@@ -5,25 +5,26 @@
 #include <vector>
 #include "source.hpp"
 
-enum class ErrorLevel {
+enum class ErrorLevel : std::uint8_t {
     Warning,
     Error,
     Fatal
 };
 
 namespace Colour {
-    inline const char* RED = "\033[1;31m";
-    inline const char* YELLOW = "\033[1;33m";
-    inline const char* BLUE = "\033[1;34m";
-    inline const char* RESET = "\033[0m";
-    inline const char* BOLD = "\033[1m";
+    inline const char* const RED = "\033[1;31m";
+    inline const char* const YELLOW = "\033[1;33m";
+    inline const char* const BLUE = "\033[1;34m";
+    inline const char* const RESET = "\033[0m";
+    inline const char* const BOLD = "\033[1m";
 }
 
 struct SourceFile {
     std::string filename;
     std::string content;
     
-    std::string get_line(size_t line_num) const {
+    
+    [[nodiscard]] std::string get_line(size_t line_num) const {
         size_t current_line = 1;
         size_t line_start = 0;
         
@@ -56,7 +57,7 @@ struct SourceFile {
 class Diagnostic {
 public:
     Diagnostic(ErrorLevel level, std::string message, SourceSpan span) 
-        : level_(level), message_(std::move(message)), span_(std::move(span)) {}
+        : level_(level), message_(std::move(message)), span_(span) {}
 
     void report(const SourceFile& source, std::ostream& out) const;
     ErrorLevel level() const { return level_; }

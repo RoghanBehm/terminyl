@@ -1,12 +1,23 @@
 cmake_minimum_required(VERSION 3.16)
-
 project(terminyl LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
+
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES clang-tidy)
+    if(CLANG_TIDY_EXE)
+        message(STATUS "clang-tidy enabled for build: ${CLANG_TIDY_EXE}")
+        set(CMAKE_CXX_CLANG_TIDY 
+            ${CLANG_TIDY_EXE};
+            --warnings-as-errors=*;
+        )
+    endif()
+endif()
 
 set(SOURCES
     src/main.cpp
@@ -35,14 +46,6 @@ add_executable(terminyl
 
 target_link_libraries(terminyl
     PRIVATE core
-)
-
-add_custom_target(clang-tidy
-    COMMAND clang-tidy
-        -p ${CMAKE_BINARY_DIR}
-        ${SOURCES}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running clang-tidy on terminyl sources"
 )
 
 install(TARGETS terminyl RUNTIME DESTINATION bin)

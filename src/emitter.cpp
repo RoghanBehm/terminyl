@@ -4,7 +4,7 @@
 #include <string_view>
 #include <variant>
 
-Emitter::Emitter(Style s) : style_(std::move(s)) {}
+Emitter::Emitter(Style s) : style_(s) {}
 
 void Emitter::render(std::ostream &out, const Document &doc) const {
   for (const auto &blk : doc.blocks()) {
@@ -82,8 +82,7 @@ void Emitter::flatten_runs(const std::vector<Document::InlinePtr> &inlines,
         [&](auto const &node) {
           using T = std::remove_cvref_t<decltype(node)>;
           if constexpr (std::is_same_v<T, Document::Inline::Text>) {
-            bool glue_left = is_punctuation(node.text);
-            out.push_back(Run{node.text, current_style, glue_left});
+            out.push_back(Run{node.text, current_style});
           } else if constexpr (std::is_same_v<T, Document::Inline::Bold>) {
             StyleState child_style = current_style;
             child_style.bold = true;
@@ -119,8 +118,7 @@ void Emitter::wrap_paragraph(std::ostream &out,
   StyleState current_state;
   std::string_view last_word;
 
-  for (size_t run_idx = 0; run_idx < runs.size(); ++run_idx) {
-    auto const &r = runs[run_idx];
+  for (const auto & r : runs) {
     std::string_view s = r.text;
     std::size_t i = 0;
     
@@ -148,25 +146,17 @@ void Emitter::wrap_paragraph(std::ostream &out,
         out << '\n';
         write_indent();
       } else if (line_len != indent) {
- 
+        // Use glue logic to determine if we need a space
         bool should_add_space = true;
         
-        // Don't add space if current word is glue-left punctuation (like comma, period)
-      if (is_punctuation(word)) {
-        char first_char = word[0];
-        if (first_char == ',' || first_char == '.' || first_char == '!' || 
-            first_char == '?' || first_char == ';' || first_char == ':' ||
-            first_char == '%') {  // ← Add this
+        // Don't add space if current word should glue left
+        if (should_glue_left(word)) {
           should_add_space = false;
         }
-      }
         
-        // Don't add space if previous word was glue-right punctuation (like $, opening brackets)
-        if (!last_word.empty() && is_punctuation(last_word)) {
-          char last_char = last_word[0];
-          if (last_char == '$' || last_char == '(' || last_char == '[' || last_char == '{') {
-            should_add_space = false;
-          }
+        // Don't add space if previous word should glue right
+        if (!last_word.empty() && should_glue_right(last_word)) {
+          should_add_space = false;
         }
         
         if (should_add_space) {
@@ -207,4 +197,18 @@ bool Emitter::is_punctuation(std::string_view s) const {
     if (!std::ispunct(c)) return false;
   }
   return saw_char;
+}
+
+bool Emitter::should_glue_left(std::string_view s) const {
+  if (s.empty() || !is_punctuation(s)) return false;
+  char first = s[0];
+  return first == ',' || first == '.' || first == '!' || 
+         first == '?' || first == ';' || first == ':' ||
+         first == '%' || first == ')' || first == ']' || first == '}';
+}
+
+bool Emitter::should_glue_right(std::string_view s) const {
+  if (s.empty() || !is_punctuation(s)) return false;
+  char first = s[0];
+  return first == '$' || first == '(' || first == '[' || first == '{';
 }

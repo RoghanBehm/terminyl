@@ -15,7 +15,7 @@ public:
     bool match(char expected);
     std::vector<Token> scan_tokens();
     void addToken(TokenType type);
-    void addToken(TokenType type, Literal lit);
+    void addToken(TokenType type, Literal value);
     void lexToken();
     void heading();
     std::vector<Token> lexTokens();
@@ -23,7 +23,7 @@ public:
     const DiagnosticSet& diagnostics() const { return diagnostics_; }
 
 private:
-    enum class LexerMode {
+    enum class LexerMode : std::uint8_t {
         TEXT,       // Normal text mode - spaces significant
         EXPRESSION  // Expression mode - skip whitespace
     };

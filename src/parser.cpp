@@ -20,7 +20,7 @@
     return doc;
   }
 
-  Document::Expr::Ptr Parser::laparse(std::function<Document::Expr::Ptr()> op_type, std::initializer_list<TokenType> types) {
+  Document::Expr::Ptr Parser::laparse(const std::function<Document::Expr::Ptr()>& op_type, std::initializer_list<TokenType> types) {
     Document::Expr::Ptr lhs = op_type();
 
     while (match(types)) {
@@ -29,7 +29,7 @@
       SourceSpan sp;
       sp.start = lhs->span.start;
       sp.end = rhs->span.end;
-      lhs = Document::Expr::make_binary(std::move(lhs), std::move(op), std::move(rhs), sp);
+      lhs = Document::Expr::make_binary(std::move(lhs), op, std::move(rhs), sp);
     }
     return lhs;
   }
@@ -253,7 +253,7 @@
       SourceSpan sp;
       sp.start = op.span().start;
       sp.end = right->span.end;
-      return Document::Expr::make_unary(std::move(op), std::move(right), sp);
+      return Document::Expr::make_unary(op, std::move(right), sp);
     }
 
     return primary();
@@ -343,7 +343,7 @@
 
   Token Parser::consume(TokenType type, std::string message) {
       if (check(type)) return advance();
-      error(message, peek().span());
+      error(std::move(message), peek().span());
       return advance();
   }
 
@@ -364,6 +364,6 @@
 
 
   
-  void Parser::error(std::string msg, SourceSpan span) {
-    diagnostics_.add(Diagnostic(ErrorLevel::Error, msg, span));
+  void Parser::error(std::string message, SourceSpan span) {
+    diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
   }

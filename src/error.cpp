@@ -28,7 +28,7 @@ const char* Diagnostic::get_level_colour() const {
 void Diagnostic::print_snippet(const SourceFile& source, std::ostream& out) const {
 
     size_t max_line = span_.end.line;
-    int line_num_width = std::to_string(max_line).length();
+    auto line_num_width = std::to_string(max_line).length();
     
     size_t start_line = span_.start.line > 1 ? span_.start.line - 1 : span_.start.line;
     size_t end_line = std::min(static_cast<size_t>(span_.end.line + 1), source.get_line_count());
@@ -74,7 +74,11 @@ void Diagnostic::print_snippet(const SourceFile& source, std::ostream& out) cons
         std::string display_line = expand_tabs(line);
         
         // Print line number and gutter
-        out << Colour::BLUE << std::setw(line_num_width) << line_num << " | " << Colour::RESET;
+        out << Colour::BLUE 
+            << std::setw(static_cast<int>(line_num_width)) 
+            << line_num << " | " 
+            << Colour::RESET;
+            
         out << display_line << "\n";
         
         // Print underline only for error line
