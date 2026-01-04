@@ -88,6 +88,9 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
           auto lhs = eval(*node.lhs);
           auto rhs = eval(*node.rhs);
           return evalBinaryOp(lhs, rhs, node.op.getType(), expr.span);
+        } else if constexpr (std::is_same_v<T, Document::Expr::Unary>) {
+          auto rhs = eval(*node.rhs);
+          return evalUnaryOp(rhs, node.op.getType(), expr.span);
         } else {
           error("Unhandled expression type", expr.span);
           return Value{Error{"Unhandled expr alternative"}};
@@ -147,6 +150,34 @@ Lowerer::tryBinaryOp(const Value &lhs, const Value &rhs, TokenType op) {
   }
 }
 
+template <typename T>
+std::optional<Lowerer::Value> Lowerer::tryUnaryOp(const Value &rhs,
+                                                  TokenType op) {
+  auto r = std::get_if<T>(&rhs.v);
+  if (!r)
+    return std::nullopt;
+
+  if constexpr (std::is_same_v<T, double>) {
+    switch (op) {
+    case TokenType::PLUS:
+      return Value{+(*r)};
+    case TokenType::MINUS:
+      return Value{-(*r)};
+    default:
+      return std::nullopt;
+    }
+  } else if constexpr (std::is_same_v<T, bool>) {
+    switch (op) {
+    case TokenType::BANG:
+      return Value{!(*r)};
+    default:
+      return std::nullopt;
+    }
+  } else {
+    return std::nullopt;
+  }
+}
+
 Lowerer::Value Lowerer::evalBinaryOp(const Value &lhs, const Value &rhs,
                                      TokenType op, SourceSpan span) {
   if (auto result = tryBinaryOp<double>(lhs, rhs, op))
@@ -164,7 +195,18 @@ Lowerer::Value Lowerer::evalBinaryOp(const Value &lhs, const Value &rhs,
   }
 
   error("Type mismatch for operator", span);
-  return Value{0.0}; // Placeholder
+  return Value{Error{"Type mismatch for binary operator"}};
+}
+
+Lowerer::Value Lowerer::evalUnaryOp(const Value &rhs, TokenType op,
+                                    SourceSpan span) {
+  if (auto result = tryUnaryOp<double>(rhs, op))
+    return *result;
+  if (auto result = tryUnaryOp<bool>(rhs, op))
+    return *result;
+
+  error("Type mismatch for unary operator", span);
+  return Value{Error{"Type mismatch for unary operator"}};
 }
 
 void Lowerer::error(std::string message, SourceSpan span) {

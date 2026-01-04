@@ -29,6 +29,10 @@ private:
   template<typename T>
   std::optional<Value> tryBinaryOp(const Value& lhs, const Value& rhs, TokenType op);
 
+  template<typename T>
+  std::optional<Value> tryUnaryOp(const Value& rhs, TokenType op);
+
   Value evalBinaryOp(const Value& lhs, const Value& rhs, TokenType op, SourceSpan span);
+  Value evalUnaryOp(const Value& rhs, TokenType op, SourceSpan span);
   std::string toString(const Value& v);
 };
