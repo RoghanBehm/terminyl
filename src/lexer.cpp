@@ -164,8 +164,8 @@ void Lexer::lexToken() {
       current--;
     cur_pos.column--;
     text();
-    break;
     }
+    break;
   }
 }
 

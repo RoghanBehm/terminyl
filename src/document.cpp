@@ -47,3 +47,7 @@ Document::Expr::Ptr Document::Expr::make_str(std::string s, SourceSpan sp) {
   return std::make_shared<Document::Expr>(Document::Expr::Str{std::move(s)},
                                           sp);
 }
+
+Document::Expr::Ptr Document::Expr::make_bool(bool b, SourceSpan sp) {
+  return std::make_shared<Document::Expr>(Document::Expr::Bool{b}, sp);
+}

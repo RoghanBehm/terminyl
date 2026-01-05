@@ -65,6 +65,10 @@ std::string Token::to_string(TokenType type) {
     return "SLASH";
   case MINUS:
     return "MINUS";
+  case TRUE:
+    return "TRUE";
+  case FALSE:
+    return "FALSE";
   default:
     return "IDK";
   }

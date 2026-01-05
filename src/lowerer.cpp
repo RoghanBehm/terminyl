@@ -9,7 +9,7 @@ std::string Lowerer::toString(const Value &val) {
         using T = std::remove_cvref_t<decltype(x)>;
         if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>) {
           std::ostringstream oss;
-          oss << x;
+          oss << std::boolalpha << x;
           return oss.str();
         } else if constexpr (std::is_same_v<T, Error>) {
           return "Error in Lowerer::toString";
@@ -82,7 +82,8 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
       [&](auto const &node) -> Value {
         using T = std::remove_cvref_t<decltype(node)>;
         if constexpr (std::is_same_v<T, Document::Expr::Num> ||
-                      std::is_same_v<T, Document::Expr::Str>) {
+                      std::is_same_v<T, Document::Expr::Str> ||
+                      std::is_same_v<T, Document::Expr::Bool>) {
           return Value{node.value};
         } else if constexpr (std::is_same_v<T, Document::Expr::Binary>) {
           auto lhs = eval(*node.lhs);

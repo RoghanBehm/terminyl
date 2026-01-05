@@ -261,15 +261,13 @@
 
 
   Document::ExprPtr Parser::primary() {
+
+    if (match(TokenType::TRUE))  return Document::Expr::make_bool(true, previous().span());
+    if (match(TokenType::FALSE)) return Document::Expr::make_bool(false, previous().span());
+
     if (match(TokenType::NUMBER)) {
-        const Token& t = previous();
-        try {
-            double v = std::stod(std::string(t.getLexeme()));
-            return Document::Expr::make_num(v, t.span());
-        } catch (const std::exception& e) {
-            error("Invalid number format", t.span());
-            return Document::Expr::make_num(0.0, t.span());
-        }
+      const Token& t = previous();
+      return Expr::make_num(std::get<double>(t.getLiteral()), t.span());
     }
 
     if (match(TokenType::STRING)) {
@@ -284,7 +282,7 @@
       return e;
     }
 
-    error("Expected number or '('", peek().span());
+    error("Expected literal or '('", peek().span());
     synchronize();
     return Document::Expr::make_num(0.0, previous().span()); // Error placeholder
   }
