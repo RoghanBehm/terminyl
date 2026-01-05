@@ -92,12 +92,45 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
         } else if constexpr (std::is_same_v<T, Document::Expr::Unary>) {
           auto rhs = eval(*node.rhs);
           return evalUnaryOp(rhs, node.op.getType(), expr.span);
+        } else if constexpr (std::is_same_v<T, Document::Expr::Logical>) {
+          auto lhs = eval(*node.lhs);
+          auto rhs = eval(*node.rhs);
+          return evalLogicalOp(node, expr.span);
         } else {
           error("Unhandled expression type", expr.span);
           return Value{Error{"Unhandled expr alternative"}};
         }
       },
       expr.node);
+}
+
+Lowerer::Value Lowerer::evalLogicalOp(const Document::Expr::Logical &node,
+                                      SourceSpan span) {
+  auto lhs_ = eval(*node.lhs);
+  auto l = std::get_if<bool>(&lhs_.v);
+  if (!l) {
+    error("Logical operator requires boolean operands", span);
+    return Value{Error{"Logical op on non-bool"}};
+  }
+
+  if (node.op.getType() == TokenType::OR) {
+    if (*l)
+      return Value{true}; // short-circuit
+  } else if (node.op.getType() == TokenType::AND) {
+    if (!*l)
+      return Value{false}; // short-circuit
+  } else {
+    error("Unknown logical operator", span);
+    return Value{Error{"Unknown logical op"}};
+  }
+
+  auto rhs_ = eval(*node.rhs);
+  auto r = std::get_if<bool>(&rhs_.v);
+  if (!r) {
+    error("Logical operator requires boolean operands", span);
+    return Value{Error{"Logical op on non-bool"}};
+  }
+  return Value{node.op.getType() == TokenType::OR ? (*l || *r) : (*l && *r)};
 }
 
 template <typename T>

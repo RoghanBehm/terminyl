@@ -243,7 +243,7 @@ Document::Expr::Ptr Parser::logical_and() {
 Document::Expr::Ptr Parser::equality() {
   return laparse([this] { return comparison(); },
                  {TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL},
-                 [](auto lhs, Token op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -253,7 +253,7 @@ Document::Expr::Ptr Parser::comparison() {
   return laparse([this]() { return term(); },
                  {TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS,
                   TokenType::LESS_EQUAL},
-                 [](auto lhs, Token op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -262,7 +262,7 @@ Document::Expr::Ptr Parser::comparison() {
 Document::Expr::Ptr Parser::term() {
   return laparse([this] { return factor(); },
                  {TokenType::MINUS, TokenType::PLUS},
-                 [](auto lhs, Token op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -271,7 +271,7 @@ Document::Expr::Ptr Parser::term() {
 Document::Expr::Ptr Parser::factor() {
   return laparse([this]() { return unary(); },
                  {TokenType::SLASH, TokenType::STAR},
-                 [](auto lhs, Token op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });

@@ -27,4 +27,4 @@ Growth rate: #(((52000 - 45000) / 45000) * 100)%
 
 
 
-#(true != true)
+#(false && true)
