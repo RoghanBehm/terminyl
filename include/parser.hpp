@@ -19,9 +19,14 @@ private:
   bool check(TokenType type);
   bool match(TokenType type);
   bool match(std::initializer_list<TokenType> types);
-  Document::Expr::Ptr
-  laparse(const std::function<Document::Expr::Ptr()> &op_type,
-          std::initializer_list<TokenType> types);
+
+  using buildFn = std::function<Document::Expr::Ptr(
+      Document::Expr::Ptr lhs, Token const& op, Document::Expr::Ptr rhs,
+      SourceSpan sp)>;
+
+  Document::Expr::Ptr laparse(const std::function<Document::Expr::Ptr()>& op_type,
+                              std::initializer_list<TokenType> types,
+                              const buildFn& build);
   const Token &peek() const;
   const Token &previous() const;
   bool isAtEnd();
@@ -33,6 +38,8 @@ private:
   Document::InlinePtr parseItalic();
   Document::InlinePtr parseCode();
   Document::InlinePtr parseSplice();
+  Document::Expr::Ptr logical_and();
+  Document::Expr::Ptr logical_or();
   Document::Expr::Ptr equality();
   Document::Expr::Ptr comparison();
   Document::Expr::Ptr term();
@@ -43,5 +50,4 @@ private:
   Document::Block block();
   DiagnosticSet diagnostics_;
   void error(std::string message, SourceSpan span);
-
 };

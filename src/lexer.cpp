@@ -127,6 +127,34 @@ void Lexer::lexToken() {
   case '-':
     addToken(MINUS);
     break;
+  case '&':
+    if (mode_ == LexerMode::EXPRESSION) {
+      if (match('&'))
+        addToken(TokenType::AND);
+      else
+        error("Unexpected '&' (did you mean '&&'?)",
+              SourceSpan{start_pos, cur_pos});
+    } else {
+      current--;
+      cur_pos.column--;
+      text();
+    }
+    break;
+
+  case '|':
+    if (mode_ == LexerMode::EXPRESSION) {
+      if (match('|'))
+        addToken(TokenType::OR);
+      else
+        error("Unexpected '|' (did you mean '||'?)",
+              SourceSpan{start_pos, cur_pos});
+    } else {
+      current--;
+      cur_pos.column--;
+      text();
+    }
+    break;
+
   case '!':
     addToken(match('=') ? BANG_EQUAL : BANG);
     break;
@@ -162,8 +190,8 @@ void Lexer::lexToken() {
         error("Unknown expression", SourceSpan{start_pos, cur_pos});
     } else {
       current--;
-    cur_pos.column--;
-    text();
+      cur_pos.column--;
+      text();
     }
     break;
   }
@@ -239,7 +267,7 @@ void Lexer::string() {
 
 bool Lexer::isSpecialChar(char c) {
   if (mode_ == LexerMode::EXPRESSION) {
-    static constexpr std::string_view exprSpecial = "\n*_`#(),+-/=<>!";
+    static constexpr std::string_view exprSpecial = "\n*_`#(),+-/=<>!&|";
     return exprSpecial.find(c) != std::string_view::npos;
   } else {
     static constexpr std::string_view textSpecial = "\n*_`#";

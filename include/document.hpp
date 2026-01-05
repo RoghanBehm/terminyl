@@ -26,6 +26,12 @@ public:
       std::string callee;
       std::vector<Ptr> args;
     };
+
+    struct Logical {
+      Ptr lhs;
+      Token op;
+      Ptr rhs;
+    };
     struct Binary {
       Ptr lhs;
       Token op;
@@ -39,20 +45,21 @@ public:
       bool value;
     };
 
-    std::variant<Num, Var, Str, Call, Binary, Unary, Bool> node;
+    std::variant<Num, Var, Str, Call, Logical, Binary, Unary, Bool> node;
     SourceSpan span{};
 
     Expr(Num n, SourceSpan sp) : node(n), span(sp) {}
     Expr(Var v, SourceSpan sp) : node(std::move(v)), span(sp) {}
     Expr(Str s, SourceSpan sp) : node(std::move(s)), span(sp) {}
     Expr(Call c, SourceSpan sp) : node(std::move(c)), span(sp) {}
+    Expr(Logical l, SourceSpan sp) : node(std::move(l)), span(sp) {}
     Expr(Binary b, SourceSpan sp) : node(std::move(b)), span(sp) {}
     Expr(Unary u, SourceSpan sp) : node(std::move(u)), span(sp) {}
     Expr(Bool b, SourceSpan sp) : node(b), span(sp) {}
 
     static Ptr make_num(double v, SourceSpan sp);
     static Ptr make_str(std::string s, SourceSpan sp);
-
+    static Ptr make_logical(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_binary(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_unary(Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_bool(bool b, SourceSpan sp);

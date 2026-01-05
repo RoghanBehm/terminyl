@@ -27,6 +27,8 @@ enum class TokenType : std::uint8_t {
     ELSE,
     IF, 
     FN,
+    OR,
+    AND,
 
 
     // One or two character tokens.
