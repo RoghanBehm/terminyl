@@ -29,6 +29,7 @@ set(SOURCES
     src/document.cpp
     src/lowerer.cpp
     src/error.cpp
+    src/environment.cpp
 )
 
 add_library(core STATIC

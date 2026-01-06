@@ -1,0 +1,6 @@
+#let name = "Typst" 
+
+My name is #name.
+
+
+Result: #(2 + 2) 

@@ -26,12 +26,11 @@ Document::Inline::Ptr Document::Inline::make_splice(std::shared_ptr<Expr> e,
 }
 
 Document::Expr::Ptr Document::Expr::make_logical(Document::Expr::Ptr lhs,
-                                                Token op,
-                                                Document::Expr::Ptr rhs,
-                                                SourceSpan sp) {
+                                                 Token op,
+                                                 Document::Expr::Ptr rhs,
+                                                 SourceSpan sp) {
   return std::make_shared<Document::Expr>(
-      Document::Expr::Logical{std::move(lhs), op, std::move(rhs)},
-      sp);
+      Document::Expr::Logical{std::move(lhs), op, std::move(rhs)}, sp);
 }
 
 Document::Expr::Ptr Document::Expr::make_binary(Document::Expr::Ptr lhs,
@@ -39,8 +38,7 @@ Document::Expr::Ptr Document::Expr::make_binary(Document::Expr::Ptr lhs,
                                                 Document::Expr::Ptr rhs,
                                                 SourceSpan sp) {
   return std::make_shared<Document::Expr>(
-      Document::Expr::Binary{std::move(lhs), op, std::move(rhs)},
-      sp);
+      Document::Expr::Binary{std::move(lhs), op, std::move(rhs)}, sp);
 }
 
 Document::Expr::Ptr
@@ -59,4 +57,15 @@ Document::Expr::Ptr Document::Expr::make_str(std::string s, SourceSpan sp) {
 
 Document::Expr::Ptr Document::Expr::make_bool(bool b, SourceSpan sp) {
   return std::make_shared<Document::Expr>(Document::Expr::Bool{b}, sp);
+}
+
+
+Document::Expr::Ptr Document::Expr::make_var(std::string name, SourceSpan sp) {
+  return std::make_shared<Expr>(Var{std::move(name)}, sp);
+}
+
+Document::Inline::Ptr Document::Inline::make_let(std::string name, 
+                                                  Expr::Ptr value,
+                                                  SourceSpan sp) {
+  return std::make_shared<Inline>(Let{std::move(name), std::move(value)}, sp);
 }

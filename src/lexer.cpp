@@ -101,17 +101,27 @@ void Lexer::lexToken() {
   case '/':
     addToken(SLASH);
     break;
-  case '#':
-    if (peek() == '(') {
-      advance();
-      paren_depth_ = 1;
-      mode_ = LexerMode::EXPRESSION;
-      addToken(TokenType::HASH);
-      addToken(TokenType::LEFT_PAREN);
-    } else {
-      addToken(TokenType::HASH);
+case '#':
+  addToken(TokenType::HASH);
+  
+  // Temporarily enter expression mode to lex the next token
+  if (isAlpha(peek())) {
+    mode_ = LexerMode::EXPRESSION;
+    
+    start = current;
+    start_pos = cur_pos;
+    identifier();
+    
+    if (tokens.back().getType() != TokenType::LET) {
+      mode_ = LexerMode::TEXT;
     }
-    break;
+  } else if (peek() == '(') {
+    advance();
+    paren_depth_ = 1;
+    mode_ = LexerMode::EXPRESSION;
+    addToken(TokenType::LEFT_PAREN);
+  }
+  break;
   case '"':
     string();
     break;
@@ -165,6 +175,10 @@ void Lexer::lexToken() {
     addToken(match('=') ? GREATER_EQUAL : GREATER);
     break;
   case '\n':
+    if (mode_ == LexerMode::EXPRESSION && paren_depth_ == 0) {
+      mode_ = LexerMode::TEXT;
+    }
+    
     if (peek() == '\n') {
       advance();
 

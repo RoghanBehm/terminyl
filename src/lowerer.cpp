@@ -13,6 +13,8 @@ std::string Lowerer::toString(const Value &val) {
           return oss.str();
         } else if constexpr (std::is_same_v<T, Error>) {
           return "Error in Lowerer::toString";
+        } else if constexpr (std::is_same_v<T, Function>) {
+          return "Function";
         } else {
           return x;
         }
@@ -69,6 +71,9 @@ Lowerer::lowerInlines(const std::vector<Document::InlinePtr> &inlines) {
             auto value = eval(*node.expr);
             out.push_back(
                 Document::Inline::make_text(toString(value), inl->span));
+          } else if constexpr (std::is_same_v<T, Document::Inline::Let>) {
+            Value val = eval(*node.value);
+            environment_->define(node.name, val);
           }
         },
         inl->node);
@@ -77,7 +82,7 @@ Lowerer::lowerInlines(const std::vector<Document::InlinePtr> &inlines) {
   return out;
 }
 
-Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
+Value Lowerer::eval(const Document::Expr &expr) {
   return std::visit(
       [&](auto const &node) -> Value {
         using T = std::remove_cvref_t<decltype(node)>;
@@ -96,6 +101,13 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
           auto lhs = eval(*node.lhs);
           auto rhs = eval(*node.rhs);
           return evalLogicalOp(node, expr.span);
+        } else if constexpr (std::is_same_v<T, Document::Expr::Var>) {
+          auto result = environment_->get(node.name);
+          if (!result) {
+            error("Undefined variable '" + node.name + "'", expr.span);
+            return Value{Error{"Undefined variable"}};
+          }
+          return *result;
         } else {
           error("Unhandled expression type", expr.span);
           return Value{Error{"Unhandled expr alternative"}};
@@ -104,8 +116,8 @@ Lowerer::Value Lowerer::eval(const Document::Expr &expr) {
       expr.node);
 }
 
-Lowerer::Value Lowerer::evalLogicalOp(const Document::Expr::Logical &node,
-                                      SourceSpan span) {
+Value Lowerer::evalLogicalOp(const Document::Expr::Logical &node,
+                             SourceSpan span) {
   auto lhs_ = eval(*node.lhs);
   auto l = std::get_if<bool>(&lhs_.v);
   if (!l) {
@@ -134,8 +146,8 @@ Lowerer::Value Lowerer::evalLogicalOp(const Document::Expr::Logical &node,
 }
 
 template <typename T>
-std::optional<Lowerer::Value>
-Lowerer::tryBinaryOp(const Value &lhs, const Value &rhs, TokenType op) {
+std::optional<Value> Lowerer::tryBinaryOp(const Value &lhs, const Value &rhs,
+                                          TokenType op) {
   auto l = std::get_if<T>(&lhs.v);
   auto r = std::get_if<T>(&rhs.v);
   if (!l || !r)
@@ -185,8 +197,7 @@ Lowerer::tryBinaryOp(const Value &lhs, const Value &rhs, TokenType op) {
 }
 
 template <typename T>
-std::optional<Lowerer::Value> Lowerer::tryUnaryOp(const Value &rhs,
-                                                  TokenType op) {
+std::optional<Value> Lowerer::tryUnaryOp(const Value &rhs, TokenType op) {
   auto r = std::get_if<T>(&rhs.v);
   if (!r)
     return std::nullopt;
@@ -212,8 +223,8 @@ std::optional<Lowerer::Value> Lowerer::tryUnaryOp(const Value &rhs,
   }
 }
 
-Lowerer::Value Lowerer::evalBinaryOp(const Value &lhs, const Value &rhs,
-                                     TokenType op, SourceSpan span) {
+Value Lowerer::evalBinaryOp(const Value &lhs, const Value &rhs, TokenType op,
+                            SourceSpan span) {
   if (auto result = tryBinaryOp<double>(lhs, rhs, op))
     return *result;
 
@@ -232,8 +243,7 @@ Lowerer::Value Lowerer::evalBinaryOp(const Value &lhs, const Value &rhs,
   return Value{Error{"Type mismatch for binary operator"}};
 }
 
-Lowerer::Value Lowerer::evalUnaryOp(const Value &rhs, TokenType op,
-                                    SourceSpan span) {
+Value Lowerer::evalUnaryOp(const Value &rhs, TokenType op, SourceSpan span) {
   if (auto result = tryUnaryOp<double>(rhs, op))
     return *result;
   if (auto result = tryUnaryOp<bool>(rhs, op))

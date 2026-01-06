@@ -28,6 +28,7 @@ private:
                               std::initializer_list<TokenType> types,
                               const buildFn& build);
   const Token &peek() const;
+  const Token& peekNext() const;
   const Token &previous() const;
   bool isAtEnd();
   const Token &advance();
@@ -37,9 +38,13 @@ private:
   Document::InlinePtr parseBold();
   Document::InlinePtr parseItalic();
   Document::InlinePtr parseCode();
+  Document::InlinePtr parseLet();
+  Document::InlinePtr parseVarReference();
   Document::InlinePtr parseSplice();
-  Document::Expr::Ptr logical_and();
+  Document::Expr::Ptr expression();
+  Document::Expr::Ptr assignment();
   Document::Expr::Ptr logical_or();
+  Document::Expr::Ptr logical_and();
   Document::Expr::Ptr equality();
   Document::Expr::Ptr comparison();
   Document::Expr::Ptr term();

@@ -27,7 +27,7 @@ Parser::laparse(const std::function<Document::Expr::Ptr()> &op_type,
   Document::Expr::Ptr lhs = op_type();
 
   while (match(types)) {
-    Token const& op = previous();
+    Token const &op = previous();
     Document::Expr::Ptr rhs = op_type();
     SourceSpan sp{lhs->span.start, rhs->span.end};
     lhs = build(std::move(lhs), op, std::move(rhs), sp);
@@ -81,6 +81,7 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
   };
 
   while (!isAtEnd() && !check(endToken)) {
+
     if (check(TokenType::NEWLINE)) {
       break;
     }
@@ -105,10 +106,22 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
 
     if (check(TokenType::HASH)) {
       flush_text();
-      inlines.push_back(parseSplice());
+      advance(); // '#'
+
+      if (check(TokenType::LET)) {
+        // #let name = value
+        inlines.push_back(parseLet());
+      } else if (check(TokenType::LEFT_PAREN)) {
+        // #(expr)
+        inlines.push_back(parseSplice());
+      } else if (check(TokenType::IDENTIFIER)) {
+        // #name
+        inlines.push_back(parseVarReference());
+      } else {
+        error("Expected 'let', '(', or identifier after '#'", peek().span());
+      }
       continue;
     }
-
     // Regular text
     const Token &token = advance();
     text.append(token.getLexeme(), token.span().start);
@@ -193,10 +206,49 @@ Document::InlinePtr Parser::parseCode() {
   return Document::Inline::make_code(std::move(content), span);
 }
 
+Document::InlinePtr Parser::parseVarReference() {
+  SourceSpan span;
+  span.start = previous().span().start;
+  if (!check(TokenType::IDENTIFIER)) {
+    error("Expected identifier after '#'", peek().span());
+    return Document::Inline::make_text("[ERROR]", span);
+  }
+
+  std::string name = std::string(peek().getLexeme());
+  advance();
+
+  span.end = previous().span().end;
+
+  // Create a Var expression and wrap in splice
+  auto var_expr = Document::Expr::make_var(std::move(name), span);
+  return Document::Inline::make_splice(std::move(var_expr), span);
+}
+
+Document::InlinePtr Parser::parseLet() {
+  SourceSpan span;
+  span.start = previous().span().start;
+
+  consume(TokenType::LET, "Expected 'let'");
+
+  if (!check(TokenType::IDENTIFIER)) {
+    error("Expected variable name after 'let'", peek().span());
+    return Document::Inline::make_text("[ERROR]", span);
+  }
+
+  std::string name = std::string(peek().getLexeme());
+  advance(); // consume ident
+
+  consume(TokenType::EQUAL, "Expected '=' in let binding");
+
+  Document::ExprPtr value = expression();
+
+  span.end = previous().span().end;
+  return Document::Inline::make_let(std::move(name), std::move(value), span);
+}
+
 Document::InlinePtr Parser::parseSplice() {
   SourceSpan span;
   span.start = peek().span().start;
-  advance(); // '#'
 
   if (!check(TokenType::LEFT_PAREN)) {
     error("Expected '(' after '#'", peek().span());
@@ -211,7 +263,7 @@ Document::InlinePtr Parser::parseSplice() {
     return Document::Inline::make_text("0", span);
   }
 
-  Document::ExprPtr e = logical_or(); // start from top
+  Document::ExprPtr e = expression(); // start from top
 
   if (!check(TokenType::RIGHT_PAREN)) {
     error("Expected ')' after expression", peek().span());
@@ -224,26 +276,28 @@ Document::InlinePtr Parser::parseSplice() {
   return Document::Inline::make_splice(std::move(e), span);
 }
 
+Document::ExprPtr Parser::expression() { return logical_or(); }
+
 Document::Expr::Ptr Parser::logical_or() {
-  return laparse([this]{ return logical_and(); },
-                 {TokenType::OR},
-                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
-                   return Expr::make_logical(std::move(lhs), op, std::move(rhs), sp);
+  return laparse([this] { return logical_and(); }, {TokenType::OR},
+                 [](auto lhs, Token const &op, auto rhs, SourceSpan sp) {
+                   return Expr::make_logical(std::move(lhs), op, std::move(rhs),
+                                             sp);
                  });
 }
 
 Document::Expr::Ptr Parser::logical_and() {
-  return laparse([this]{ return equality(); },
-                 {TokenType::AND},
-                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
-                   return Expr::make_logical(std::move(lhs), op, std::move(rhs), sp);
+  return laparse([this] { return equality(); }, {TokenType::AND},
+                 [](auto lhs, Token const &op, auto rhs, SourceSpan sp) {
+                   return Expr::make_logical(std::move(lhs), op, std::move(rhs),
+                                             sp);
                  });
 }
 
 Document::Expr::Ptr Parser::equality() {
   return laparse([this] { return comparison(); },
                  {TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL},
-                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const &op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -253,7 +307,7 @@ Document::Expr::Ptr Parser::comparison() {
   return laparse([this]() { return term(); },
                  {TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS,
                   TokenType::LESS_EQUAL},
-                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const &op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -262,7 +316,7 @@ Document::Expr::Ptr Parser::comparison() {
 Document::Expr::Ptr Parser::term() {
   return laparse([this] { return factor(); },
                  {TokenType::MINUS, TokenType::PLUS},
-                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const &op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -271,7 +325,7 @@ Document::Expr::Ptr Parser::term() {
 Document::Expr::Ptr Parser::factor() {
   return laparse([this]() { return unary(); },
                  {TokenType::SLASH, TokenType::STAR},
-                 [](auto lhs, Token const& op, auto rhs, SourceSpan sp) {
+                 [](auto lhs, Token const &op, auto rhs, SourceSpan sp) {
                    return Document::Expr::make_binary(std::move(lhs), op,
                                                       std::move(rhs), sp);
                  });
@@ -308,8 +362,13 @@ Document::ExprPtr Parser::primary() {
     return Document::Expr::make_str(value, t.span());
   }
 
+  if (match(TokenType::IDENTIFIER)) {
+    const Token &t = previous();
+    return Document::Expr::make_var(std::string(t.getLexeme()), t.span());
+  }
+
   if (match(TokenType::LEFT_PAREN)) {
-    Document::ExprPtr e = logical_or();
+    Document::ExprPtr e = expression();
     consume(TokenType::RIGHT_PAREN, "Expected ')' in expression\n");
     return e;
   }

@@ -1,28 +1,23 @@
 #include "document.hpp"
 #include "error.hpp"
+#include "value.hpp"
+#include <memory>
 #include <optional>
 
 class Lowerer {
 public:
-  explicit Lowerer(const Document &doc) : doc_(doc) {}
+  explicit Lowerer(const Document &doc) : doc_(doc), environment_(std::make_shared<Environment>()) {}
   const DiagnosticSet &diagnostics() const { return diagnostics_; }
   Document lower(); // lower doc_ into a new Document
   const Document &getDoc() const { return doc_; }
 
 private:
   const Document &doc_;
-
+  std::shared_ptr<Environment> environment_;
   std::vector<Document::InlinePtr>
   lowerInlines(const std::vector<Document::InlinePtr> &inlines);
   void error(std::string message, SourceSpan span);
   DiagnosticSet diagnostics_;
-  struct Error {
-    std::string message;
-  };
-
-  struct Value {
-    std::variant<double, std::string, bool, Error> v;
-  };
 
   Value eval(const Document::Expr &expr);
 
@@ -33,7 +28,7 @@ private:
   template <typename T>
   std::optional<Value> tryUnaryOp(const Value &rhs, TokenType op);
 
-  Lowerer::Value evalLogicalOp(const Document::Expr::Logical &node,
+  Value evalLogicalOp(const Document::Expr::Logical &node,
                                SourceSpan span);
   Value evalBinaryOp(const Value &lhs, const Value &rhs, TokenType op,
                      SourceSpan span);

@@ -63,6 +63,7 @@ public:
     static Ptr make_binary(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_unary(Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_bool(bool b, SourceSpan sp);
+    static Ptr make_var(std::string name, SourceSpan sp);
   };
   struct Inline {
     using Ptr = std::shared_ptr<Inline>;
@@ -87,7 +88,12 @@ public:
       std::string text;
     };
 
-    std::variant<Text, Bold, Italic, Code, Splice> node;
+    struct Let {
+      std::string name;
+      Expr::Ptr value;
+    };
+
+    std::variant<Text, Bold, Italic, Code, Splice, Let> node;
     SourceSpan span{};
 
     Inline(Text t, SourceSpan sp) : node(std::move(t)), span(sp) {}
@@ -95,12 +101,14 @@ public:
     Inline(Italic i, SourceSpan sp) : node(std::move(i)), span(sp) {}
     Inline(Code c, SourceSpan sp) : node(std::move(c)), span(sp) {}
     Inline(Splice s, SourceSpan sp) : node(std::move(s)), span(sp) {}
+    Inline(Let l, SourceSpan sp) : node(std::move(l)), span(sp) {}
 
     static Ptr make_text(std::string s, SourceSpan sp);
     static Ptr make_bold(std::vector<Ptr> children, SourceSpan sp);
     static Ptr make_italic(std::vector<Ptr> children, SourceSpan sp);
     static Ptr make_code(std::string s, SourceSpan sp);
     static Ptr make_splice(Expr::Ptr e, SourceSpan sp);
+    static Ptr make_let(std::string name, Expr::Ptr value, SourceSpan sp);
   };
 
   using InlinePtr = Inline::Ptr;
