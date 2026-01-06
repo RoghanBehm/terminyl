@@ -18,6 +18,7 @@ private:
   lowerInlines(const std::vector<Document::InlinePtr> &inlines);
   void error(std::string message, SourceSpan span);
   DiagnosticSet diagnostics_;
+  bool isLetOnlyParagraph(const Document::Paragraph& p);
 
   Value eval(const Document::Expr &expr);
 
@@ -34,4 +35,5 @@ private:
                      SourceSpan span);
   Value evalUnaryOp(const Value &rhs, TokenType op, SourceSpan span);
   std::string toString(const Value &v);
+
 };

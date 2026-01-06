@@ -33,8 +33,16 @@ Document Lowerer::lower() {
           if constexpr (std::is_same_v<T, Document::Heading>) {
             out.add(b);
           } else if constexpr (std::is_same_v<T, Document::Paragraph>) {
+            auto lowered = lowerInlines(b.inlines);
+
+            if (lowered.empty() && !b.inlines.empty() &&
+                isLetOnlyParagraph(b)) {
+              return;
+            }
+
+            // Normal paragraph
             Document::Paragraph p = b;
-            p.inlines = lowerInlines(b.inlines);
+            p.inlines = std::move(lowered);
             out.add(std::move(p));
           }
         },
@@ -42,6 +50,34 @@ Document Lowerer::lower() {
   }
 
   return out;
+}
+
+bool Lowerer::isLetOnlyParagraph(const Document::Paragraph &p) {
+  bool has_let = false;
+  bool has_visible = false;
+
+  for (auto const &inl : p.inlines) {
+    std::visit(
+        [&](auto const &node) {
+          using U = std::remove_cvref_t<decltype(node)>;
+
+          if constexpr (std::is_same_v<U, Document::Inline::Let>) {
+            has_let = true;
+          } else if constexpr (std::is_same_v<U, Document::Inline::Text>) {
+            for (unsigned char c : node.text) {
+              if (!std::isspace(c)) {
+                has_visible = true;
+                break;
+              }
+            }
+          } else {
+            has_visible = true;
+          }
+        },
+        inl->node);
+  }
+
+  return has_let && !has_visible;
 }
 
 std::vector<Document::InlinePtr>
