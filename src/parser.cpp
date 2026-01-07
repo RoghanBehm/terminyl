@@ -350,6 +350,10 @@ Document::ExprPtr Parser::primary() {
     return Document::Expr::make_bool(true, previous().span());
   if (match(TokenType::FALSE))
     return Document::Expr::make_bool(false, previous().span());
+  
+  if (match(TokenType::NONE)) {
+    return Document::Expr::make_none(previous().span());
+  }
 
   if (match(TokenType::NUMBER)) {
     const Token &t = previous();
@@ -372,6 +376,8 @@ Document::ExprPtr Parser::primary() {
     consume(TokenType::RIGHT_PAREN, "Expected ')' in expression\n");
     return e;
   }
+
+
 
   error("Expected literal or '('", peek().span());
   synchronize();

@@ -69,3 +69,7 @@ Document::Inline::Ptr Document::Inline::make_let(std::string name,
                                                   SourceSpan sp) {
   return std::make_shared<Inline>(Let{std::move(name), std::move(value)}, sp);
 }
+
+Document::Expr::Ptr Document::Expr::make_none(SourceSpan sp) {
+  return std::make_shared<Expr>(None{}, sp);
+}

@@ -59,5 +59,6 @@ private:
         {"true", TokenType::TRUE}, {"false", TokenType::FALSE},
         {"let", TokenType::LET},   {"if", TokenType::IF},
         {"else", TokenType::ELSE}, {"fn", TokenType::FN},
+        {"none", TokenType::NONE}
     };
 };

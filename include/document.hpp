@@ -45,9 +45,12 @@ public:
       bool value;
     };
 
-    std::variant<Num, Var, Str, Call, Logical, Binary, Unary, Bool> node;
+    struct None {};
+
+    std::variant<None, Num, Var, Str, Call, Logical, Binary, Unary, Bool> node;
     SourceSpan span{};
 
+    Expr(None n, SourceSpan sp) : node(n), span(sp) {}
     Expr(Num n, SourceSpan sp) : node(n), span(sp) {}
     Expr(Var v, SourceSpan sp) : node(std::move(v)), span(sp) {}
     Expr(Str s, SourceSpan sp) : node(std::move(s)), span(sp) {}
@@ -57,6 +60,7 @@ public:
     Expr(Unary u, SourceSpan sp) : node(std::move(u)), span(sp) {}
     Expr(Bool b, SourceSpan sp) : node(b), span(sp) {}
 
+    static Ptr make_none(SourceSpan sp);
     static Ptr make_num(double v, SourceSpan sp);
     static Ptr make_str(std::string s, SourceSpan sp);
     static Ptr make_logical(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);

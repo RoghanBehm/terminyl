@@ -2,6 +2,7 @@
 #include "token_type.hpp"
 #include <optional>
 #include <sstream>
+#include <variant>
 
 std::string Lowerer::toString(const Value &val) {
   return std::visit(
@@ -15,6 +16,8 @@ std::string Lowerer::toString(const Value &val) {
           return "Error in Lowerer::toString";
         } else if constexpr (std::is_same_v<T, Function>) {
           return "Function";
+        } else if constexpr (std::is_same_v<T, std::monostate>) {
+          return "none";
         } else {
           return x;
         }
@@ -144,6 +147,8 @@ Value Lowerer::eval(const Document::Expr &expr) {
             return Value{Error{"Undefined variable"}};
           }
           return *result;
+        } else if constexpr (std::is_same_v<T, Document::Expr::None>) {
+          return Value{std::monostate{}};
         } else {
           error("Unhandled expression type", expr.span);
           return Value{Error{"Unhandled expr alternative"}};
@@ -194,6 +199,19 @@ std::optional<Value> Lowerer::tryBinaryOp(const Value &lhs, const Value &rhs,
     if (op == TokenType::PLUS)
       return Value{*l + *r};
     return std::nullopt;
+
+    switch (op) {
+    case TokenType::PLUS:
+      return Value{*l + *r};
+    case TokenType::EQUAL_EQUAL:
+      return Value{*l == *r};
+    case TokenType::BANG_EQUAL:
+      return Value{*l != *r};
+    default:
+      return std::nullopt;
+    }
+
+
   } else if constexpr (std::is_same_v<T, bool>) {
     // Only support comparisons for bools
     switch (op) {

@@ -16,5 +16,5 @@ struct Error {
 };
 
 struct Value {
-  std::variant<double, std::string, bool, Error, Function> v;
+  std::variant<double, std::string, bool, Error, Function, std::monostate> v;
 };

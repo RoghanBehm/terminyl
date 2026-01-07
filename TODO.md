@@ -2,7 +2,6 @@
 
 ## Priority
 - Support more expressions
-- Add variable binding
 - Control flow
 
 ## Required

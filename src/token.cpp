@@ -73,6 +73,8 @@ std::string Token::to_string(TokenType type) {
     return "OR";
   case AND:
     return "AND";
+  case NONE:
+    return "NONE";
   default:
     return "IDK";
   }
