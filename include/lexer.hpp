@@ -25,8 +25,8 @@ public:
 
 private:
     enum class LexerMode : std::uint8_t {
-        TEXT,       // Normal text mode - spaces significant
-        EXPRESSION  // Expression mode - skip whitespace
+        TEXT,       // Normal text mode: spaces significant
+        EXPRESSION,  // Expression mode: skip whitespace
     };
     
     char peekNext();
@@ -52,6 +52,7 @@ private:
     DiagnosticSet diagnostics_;
     LexerMode mode_ = LexerMode::TEXT;
     int paren_depth_ = 0;
+    bool in_code_span_ = false;
     void error(std::string message, SourceSpan span);
     
     // Reserved words

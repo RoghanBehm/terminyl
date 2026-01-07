@@ -101,27 +101,30 @@ void Lexer::lexToken() {
   case '/':
     addToken(SLASH);
     break;
-case '#':
-  addToken(TokenType::HASH);
-  
-  // Temporarily enter expression mode to lex the next token
-  if (isAlpha(peek())) {
-    mode_ = LexerMode::EXPRESSION;
-    
-    start = current;
-    start_pos = cur_pos;
-    identifier();
-    
-    if (tokens.back().getType() != TokenType::LET) {
-      mode_ = LexerMode::TEXT;
+  case '#':
+    addToken(TokenType::HASH);
+
+    if (!in_code_span_) {
+      // Temporarily enter expression mode to lex the next token
+      if (isAlpha(peek())) {
+        mode_ = LexerMode::EXPRESSION;
+
+        start = current;
+        start_pos = cur_pos;
+        identifier();
+
+        if (tokens.back().getType() != TokenType::LET) {
+          mode_ = LexerMode::TEXT;
+        }
+      } else if (peek() == '(') {
+        advance();
+        paren_depth_ = 1;
+        mode_ = LexerMode::EXPRESSION;
+        addToken(TokenType::LEFT_PAREN);
+      }
     }
-  } else if (peek() == '(') {
-    advance();
-    paren_depth_ = 1;
-    mode_ = LexerMode::EXPRESSION;
-    addToken(TokenType::LEFT_PAREN);
-  }
-  break;
+
+    break;
   case '"':
     string();
     break;
@@ -130,6 +133,7 @@ case '#':
     break;
   case '`':
     addToken(BACKTICK);
+    in_code_span_ = !in_code_span_;
     break;
   case '_':
     addToken(UNDERSCORE);
@@ -178,7 +182,7 @@ case '#':
     if (mode_ == LexerMode::EXPRESSION && paren_depth_ == 0) {
       mode_ = LexerMode::TEXT;
     }
-    
+
     if (peek() == '\n') {
       advance();
 

@@ -56,16 +56,16 @@ The document compiler features helpful, pretty error messages with:
 - Italic: `_text_`
 - Code spans: ``  `text`  ``
 
-### Expressions (implemented, minimal)
+### Expressions (implemented)
 - Inline expression splices using `#( … )`
 - Numeric literals and basic binary operators (+, -, *, /, ==, >=, <=, !=, >)
 - Expression results are evaluated and inserted into the document
+- Variables and bindings
 
 #### Example
 `Total: #(1+2)` renders as `Total: 3`.
 
 ### Expressions (planned)
-- Variables and bindings
 - Function calls
 
 ### Statements (planned)

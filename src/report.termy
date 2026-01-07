@@ -3,9 +3,9 @@
 Last updated: _January 2026_
 
 This project demonstrates a *terminal-first markup language* with 
-expression evaluation. Text wraps naturally to fit the terminal 
-width, making it ideal for generating reports, documentation, or 
-any formatted output directly in the shell.
+expression evaluation and variable binding. Text wraps naturally to fit 
+the terminal width, making it ideal for generating reports, documentation, 
+or any formatted output directly in the shell.
 
 == Key Features
 
@@ -15,16 +15,34 @@ any formatted output directly in the shell.
 
 - Expression evaluation for dynamic content
 
+- Variable binding with `#let` for reusable values
+
 == Sales Report
 
-Q1 Revenue: $#(45000)
+#let q1_revenue = 45000
 
-Q2 Revenue: $#(52000)
+#let q2_revenue = 52000
 
-Total: $#(45000 + 52000)
+Q1 Revenue: $#q1_revenue
 
-Growth rate: #(((52000 - 45000) / 45000) * 100)%
+Q2 Revenue: $#q2_revenue
 
+Total: $#(q1_revenue + q2_revenue)
 
+Growth rate: #(((q2_revenue - q1_revenue) / q1_revenue) * 100)%
+
+== Team Metrics
+
+#let team_size = 12
+
+#let projects_completed = 8
+
+#let avg_project_duration = 6
+
+Our team of #team_size members completed #projects_completed projects.
+
+Average project duration: #avg_project_duration weeks
+
+Total team-weeks invested: #(projects_completed * avg_project_duration)
 
 #(false && true)

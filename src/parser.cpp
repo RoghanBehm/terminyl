@@ -124,6 +124,7 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
     }
     // Regular text
     const Token &token = advance();
+
     text.append(token.getLexeme(), token.span().start);
   }
 
@@ -350,7 +351,7 @@ Document::ExprPtr Parser::primary() {
     return Document::Expr::make_bool(true, previous().span());
   if (match(TokenType::FALSE))
     return Document::Expr::make_bool(false, previous().span());
-  
+
   if (match(TokenType::NONE)) {
     return Document::Expr::make_none(previous().span());
   }
@@ -376,8 +377,6 @@ Document::ExprPtr Parser::primary() {
     consume(TokenType::RIGHT_PAREN, "Expected ')' in expression\n");
     return e;
   }
-
-
 
   error("Expected literal or '('", peek().span());
   synchronize();

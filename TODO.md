@@ -3,6 +3,7 @@
 ## Priority
 - Support more expressions
 - Control flow
+- Make variable bindings block-level rather than inline
 
 ## Required
 
