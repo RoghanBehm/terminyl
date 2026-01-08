@@ -153,6 +153,8 @@ Value Lowerer::eval(const Document::Expr &expr) {
           return *result;
         } else if constexpr (std::is_same_v<T, Document::Expr::None>) {
           return Value{std::monostate{}};
+        } else if constexpr (std::is_same_v<T, Document::Expr::Fn>) {
+          return Value{UserFunction{node.params, node.body, environment_}};
         } else {
           error("Unhandled expression type", expr.span);
           return Value{Error{"Unhandled expr alternative"}};
@@ -372,7 +374,7 @@ Value Lowerer::callFunction(const BuiltinFunction &func,
         [&](auto const &v) -> Value {
           using T = std::remove_cvref_t<decltype(v)>;
           if constexpr (std::is_same_v<T, std::string>) {
-            return Value{static_cast<double>(v.size())};
+            return Value{static_cast<double>(v.size()) - 2};
           } else {
             error("len() requires a string argument", span);
             return Value{Error{"Type error"}};

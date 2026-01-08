@@ -1,14 +1,13 @@
 # terminyl
-A terminal-first markup language and renderer. Parses lightweight text markup and renders it with ANSI styling and UTF-8 box-drawing characters.
+A terminal-first markup language and renderer with inline expressions, including first-class functions. It parses lightweight text markup and renders width-aware output using ANSI styling and UTF-8 box-drawing characters.
 
-
-Terminyl is evolving toward a programmable markup system, inspired by Typst, where expressions and control flow can generate document structure.
+Terminyl is evolving toward a programmable markup system, inspired by Typst, where expressions and control flow can generate document structure. The last major missing piece is control flow.
 
 ## Example
 ```bash
-build/terminyl src/report.termy
+build/terminyl src/demo.termy
 ```
-Sample input in `src/report.termy`.
+Sample input in `src/demo.termy`.
 
 ## Building
 ```bash
@@ -34,7 +33,7 @@ Terminyl uses a multi-stage pipeline:
 
 ## Current Example
 
-![Demo](terminyl.png)
+![Terminyl demo: source and rendered output](terminyl.png)
 
 ## Features
 
@@ -61,15 +60,10 @@ The document compiler features helpful, pretty error messages with:
 - Numeric literals and basic binary operators (+, -, *, /, ==, >=, <=, !=, >)
 - Expression results are evaluated and inserted into the document
 - Variables and bindings
-
-#### Example
-`Total: #(1+2)` renders as `Total: 3`.
-
-### Expressions (planned)
-- Function calls
+- Builtin functions
+- User defined functions
 
 ### Statements (planned)
-- User defined functions/macros
 - Control flow
 
 ## Design Goals

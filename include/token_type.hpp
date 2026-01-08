@@ -30,6 +30,7 @@ enum class TokenType : std::uint8_t {
     OR,
     AND,
     NONE,
+    SPACE,
 
 
     // One or two character tokens.

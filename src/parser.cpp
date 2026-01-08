@@ -86,6 +86,12 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
       break;
     }
 
+    if (check(TokenType::SPACE)) {
+      advance();
+      text.append(" ", previous().span().start);
+      continue;
+    }
+
     if (check(TokenType::STAR)) {
       flush_text();
       inlines.push_back(parseBold());
@@ -214,20 +220,21 @@ Document::InlinePtr Parser::parseVarReference() {
 
   std::string name = std::string(peek().getLexeme());
   advance(); // identifier
-   if (check(TokenType::LEFT_PAREN)) {
+  if (check(TokenType::LEFT_PAREN)) {
     advance(); // '('
-    
+
     std::vector<Document::ExprPtr> args;
     if (!check(TokenType::RIGHT_PAREN)) {
       do {
         args.push_back(expression());
       } while (match(TokenType::COMMA));
     }
-    
+
     consume(TokenType::RIGHT_PAREN, "Expected ')' after arguments");
     span.end = previous().span().end;
-    
-    auto call_expr = Document::Expr::make_call(std::move(name), std::move(args), span);
+
+    auto call_expr =
+        Document::Expr::make_call(std::move(name), std::move(args), span);
     return Document::Inline::make_splice(std::move(call_expr), span);
   }
 
@@ -383,13 +390,16 @@ Document::ExprPtr Parser::primary() {
     const Token &t = previous();
     std::string name = std::string(t.getLexeme());
 
-
     if (match(TokenType::LEFT_PAREN)) {
       return call(name);
     }
-    
+
     // Var reference
     return Document::Expr::make_var(name, t.span());
+  }
+
+  if (match(TokenType::FN)) {
+    return function();
   }
 
   if (match(TokenType::LEFT_PAREN)) {
@@ -482,20 +492,43 @@ void Parser::error(std::string message, SourceSpan span) {
   diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
 }
 
-Document::ExprPtr Parser::call(std::string name) {
+Document::Expr::Ptr Parser::call(std::string name) {
   SourceSpan span;
   span.start = previous().span().start; // '('
-  
+
   std::vector<Document::ExprPtr> args;
-  
+
   if (!check(TokenType::RIGHT_PAREN)) {
     do {
       args.push_back(expression());
     } while (match(TokenType::COMMA));
   }
-  
+
   consume(TokenType::RIGHT_PAREN, "Expected ')' after arguments");
   span.end = previous().span().end;
-  
+
   return Document::Expr::make_call(std::move(name), std::move(args), span);
+}
+
+Document::Expr::Ptr Parser::function() {
+  SourceSpan span;
+  span.start = previous().span().start;
+
+  consume(TokenType::LEFT_PAREN, "Expected '(' after 'fn'");
+
+  std::vector<std::string> params;
+  if (!check(TokenType::RIGHT_PAREN)) {
+    do {
+      consume(TokenType::IDENTIFIER, "Expected parameter name");
+      params.push_back(std::string(previous().getLexeme()));
+    } while (match(TokenType::COMMA));
+  }
+
+  consume(TokenType::RIGHT_PAREN, "Expected ')' after parameters");
+
+  Document::ExprPtr body = expression();
+
+  span.end = previous().span().end;
+
+  return Document::Expr::make_fn(std::move(params), std::move(body), span);
 }

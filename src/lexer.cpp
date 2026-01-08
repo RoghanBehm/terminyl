@@ -78,8 +78,12 @@ void Lexer::lexToken() {
     if (mode_ == LexerMode::EXPRESSION) {
       addToken(TokenType::RIGHT_PAREN);
       paren_depth_--;
-      if (paren_depth_ == 0)
+      // Only exit to TEXT mode if expression was triggered by #( and we're back
+      // to depth 0
+      if (paren_depth_ == 0 && paren_triggered_expr_) {
         mode_ = LexerMode::TEXT;
+        paren_triggered_expr_ = false;
+      }
     } else {
       current--;
       cur_pos.column--;
@@ -108,17 +112,20 @@ void Lexer::lexToken() {
       // Temporarily enter expression mode to lex the next token
       if (isAlpha(peek())) {
         mode_ = LexerMode::EXPRESSION;
+        paren_triggered_expr_ = false; // Not paren-triggered
 
         start = current;
         start_pos = cur_pos;
         identifier();
 
-        if (tokens.back().getType() != TokenType::LET && peek() != '(') {
+        if (tokens.back().getType() != TokenType::LET &&
+            tokens.back().getType() != TokenType::FN && peek() != '(') {
           mode_ = LexerMode::TEXT;
         }
       } else if (peek() == '(') {
         advance();
         paren_depth_ = 1;
+        paren_triggered_expr_ = true; // Paren-triggered expression
         mode_ = LexerMode::EXPRESSION;
         addToken(LEFT_PAREN);
       }
@@ -190,7 +197,13 @@ void Lexer::lexToken() {
         advance();
       }
       addToken(NEWLINE);
+      break;
     }
+
+    if (mode_ == LexerMode::TEXT) {
+      addToken(SPACE);
+    }
+
     break;
   case '=':
     if (start_pos.column == 1)

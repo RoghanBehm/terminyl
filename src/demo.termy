@@ -1,0 +1,52 @@
+= Terminyl Demo
+
+A terminal-first document language with inline expressions and natural text flow.
+This text demonstrates natural wrapping: when lines exceed the terminal width, they flow seamlessly to the next line, making it barely suitable for *documentation*,
+_reports_, and formatted output with `variables` and functions.
+
+== Sales Report
+
+#let q1 = 45000
+
+#let q2 = 52000
+
+Q1 Revenue: $#q1
+
+Q2 Revenue: $#q2
+
+Total: $#(q1 + q2)
+
+Growth: #(((q2 - q1) / q1) * 100)%
+
+The *quarterly performance* shows _significant improvement_ using the
+`growth rate` formula.
+
+== Built-in Functions
+
+Min/Max: #min(15, 42) and #max(15, 42)
+
+Absolute: #abs(-123.45)
+
+String length: #len("Hello, World!")
+
+Boolean logic: #(true && false)
+
+== User Functions
+
+#let add = fn(a, b) (a + b)
+
+#let multiply = fn(x, y) (x * y)
+
+Sum: #add(10, 32)
+
+Product: #multiply(6, 7)
+
+== Multi-line Function
+
+#let profit = fn(revenue, cost, tax) (
+  (revenue - cost) * (1 - tax)
+)
+
+Net profit: $#profit(1000, 400, 0.2)
+
+Use the `profit` function to calculate *after-tax earnings* with _any parameters_.

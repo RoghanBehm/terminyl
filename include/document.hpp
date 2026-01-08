@@ -45,9 +45,15 @@ public:
       bool value;
     };
 
+    struct Fn {
+      std::vector<std::string> params;
+      Expr::Ptr body;
+    };
+
     struct None {};
 
-    std::variant<None, Num, Var, Str, Call, Logical, Binary, Unary, Bool> node;
+    std::variant<None, Num, Var, Str, Call, Logical, Binary, Unary, Bool, Fn>
+        node;
     SourceSpan span{};
 
     Expr(None n, SourceSpan sp) : node(n), span(sp) {}
@@ -59,6 +65,7 @@ public:
     Expr(Binary b, SourceSpan sp) : node(std::move(b)), span(sp) {}
     Expr(Unary u, SourceSpan sp) : node(std::move(u)), span(sp) {}
     Expr(Bool b, SourceSpan sp) : node(b), span(sp) {}
+    Expr(Fn f, SourceSpan sp) : node(std::move(f)), span(sp) {}
 
     static Ptr make_none(SourceSpan sp);
     static Ptr make_num(double v, SourceSpan sp);
@@ -69,6 +76,8 @@ public:
     static Ptr make_unary(Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_bool(bool b, SourceSpan sp);
     static Ptr make_var(std::string name, SourceSpan sp);
+    static Ptr make_fn(std::vector<std::string> params, Expr::Ptr body,
+                       SourceSpan span);
   };
   struct Inline {
     using Ptr = std::shared_ptr<Inline>;
