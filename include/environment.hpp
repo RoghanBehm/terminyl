@@ -17,4 +17,6 @@ public:
   void define(const std::string& name, Value val);
   
   std::optional<Value> get(const std::string& name) const;
+
+  static std::shared_ptr<Environment> createGlobal();
 };

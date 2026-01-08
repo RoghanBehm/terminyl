@@ -143,7 +143,6 @@ Document::InlinePtr Parser::parseBold() {
   SourceSpan span;
   span.start = peek().span().start;
 
-  // Save the opening token's span for error reporting
   SourceSpan opening_span = peek().span();
 
   advance(); // consume opening *
@@ -164,7 +163,6 @@ Document::InlinePtr Parser::parseItalic() {
   SourceSpan span;
   span.start = peek().span().start;
 
-  // Save the opening token's span for error reporting
   SourceSpan opening_span = peek().span();
 
   advance(); // consume opening _
@@ -185,7 +183,6 @@ Document::InlinePtr Parser::parseCode() {
   SourceSpan span;
   span.start = peek().span().start;
 
-  // Save the opening token's span for error reporting
   SourceSpan opening_span = peek().span();
 
   advance(); // consume opening `
@@ -216,11 +213,26 @@ Document::InlinePtr Parser::parseVarReference() {
   }
 
   std::string name = std::string(peek().getLexeme());
-  advance();
+  advance(); // identifier
+   if (check(TokenType::LEFT_PAREN)) {
+    advance(); // '('
+    
+    std::vector<Document::ExprPtr> args;
+    if (!check(TokenType::RIGHT_PAREN)) {
+      do {
+        args.push_back(expression());
+      } while (match(TokenType::COMMA));
+    }
+    
+    consume(TokenType::RIGHT_PAREN, "Expected ')' after arguments");
+    span.end = previous().span().end;
+    
+    auto call_expr = Document::Expr::make_call(std::move(name), std::move(args), span);
+    return Document::Inline::make_splice(std::move(call_expr), span);
+  }
 
   span.end = previous().span().end;
 
-  // Create a Var expression and wrap in splice
   auto var_expr = Document::Expr::make_var(std::move(name), span);
   return Document::Inline::make_splice(std::move(var_expr), span);
 }
@@ -369,7 +381,15 @@ Document::ExprPtr Parser::primary() {
 
   if (match(TokenType::IDENTIFIER)) {
     const Token &t = previous();
-    return Document::Expr::make_var(std::string(t.getLexeme()), t.span());
+    std::string name = std::string(t.getLexeme());
+
+
+    if (match(TokenType::LEFT_PAREN)) {
+      return call(name);
+    }
+    
+    // Var reference
+    return Document::Expr::make_var(name, t.span());
   }
 
   if (match(TokenType::LEFT_PAREN)) {
@@ -460,4 +480,22 @@ void Parser::synchronize() {
 
 void Parser::error(std::string message, SourceSpan span) {
   diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
+}
+
+Document::ExprPtr Parser::call(std::string name) {
+  SourceSpan span;
+  span.start = previous().span().start; // '('
+  
+  std::vector<Document::ExprPtr> args;
+  
+  if (!check(TokenType::RIGHT_PAREN)) {
+    do {
+      args.push_back(expression());
+    } while (match(TokenType::COMMA));
+  }
+  
+  consume(TokenType::RIGHT_PAREN, "Expected ')' after arguments");
+  span.end = previous().span().end;
+  
+  return Document::Expr::make_call(std::move(name), std::move(args), span);
 }

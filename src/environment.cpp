@@ -15,3 +15,14 @@ std::optional<Value> Environment::get(const std::string& name) const {
   if (enclosing) return enclosing->get(name);
   return std::nullopt;
 }
+
+std::shared_ptr<Environment> Environment::createGlobal() {
+  auto env = std::make_shared<Environment>();
+  
+  env->define("max", Value{BuiltinFunction{"max", 2}});
+  env->define("min", Value{BuiltinFunction{"min", 2}});
+  env->define("len", Value{BuiltinFunction{"len", 1}});
+  env->define("abs", Value{BuiltinFunction{"abs", 1}});
+  
+  return env;
+}

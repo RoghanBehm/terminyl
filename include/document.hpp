@@ -63,6 +63,7 @@ public:
     static Ptr make_none(SourceSpan sp);
     static Ptr make_num(double v, SourceSpan sp);
     static Ptr make_str(std::string s, SourceSpan sp);
+    static Ptr make_call(std::string c, std::vector<Ptr> args, SourceSpan sp);
     static Ptr make_logical(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_binary(Ptr lhs, Token op, Ptr rhs, SourceSpan sp);
     static Ptr make_unary(Token op, Ptr rhs, SourceSpan sp);

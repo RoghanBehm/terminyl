@@ -46,3 +46,8 @@ Average project duration: #avg_project_duration weeks
 Total team-weeks invested: #(projects_completed * avg_project_duration)
 
 #(false && true)
+
+#min(1, 2)
+#max(1, 2)
+#abs(-1.2432432)
+#len("asdsad")

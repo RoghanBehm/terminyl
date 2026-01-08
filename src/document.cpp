@@ -55,18 +55,22 @@ Document::Expr::Ptr Document::Expr::make_str(std::string s, SourceSpan sp) {
                                           sp);
 }
 
+Document::Expr::Ptr
+Document::Expr::make_call(std::string c, std::vector<Ptr> args, SourceSpan sp) {
+  return std::make_shared<Document::Expr>(
+      Document::Expr::Call{std::move(c), std::move(args)}, sp);
+}
+
 Document::Expr::Ptr Document::Expr::make_bool(bool b, SourceSpan sp) {
   return std::make_shared<Document::Expr>(Document::Expr::Bool{b}, sp);
 }
-
 
 Document::Expr::Ptr Document::Expr::make_var(std::string name, SourceSpan sp) {
   return std::make_shared<Expr>(Var{std::move(name)}, sp);
 }
 
-Document::Inline::Ptr Document::Inline::make_let(std::string name, 
-                                                  Expr::Ptr value,
-                                                  SourceSpan sp) {
+Document::Inline::Ptr
+Document::Inline::make_let(std::string name, Expr::Ptr value, SourceSpan sp) {
   return std::make_shared<Inline>(Let{std::move(name), std::move(value)}, sp);
 }
 

@@ -113,14 +113,14 @@ void Lexer::lexToken() {
         start_pos = cur_pos;
         identifier();
 
-        if (tokens.back().getType() != TokenType::LET) {
+        if (tokens.back().getType() != TokenType::LET && peek() != '(') {
           mode_ = LexerMode::TEXT;
         }
       } else if (peek() == '(') {
         advance();
         paren_depth_ = 1;
         mode_ = LexerMode::EXPRESSION;
-        addToken(TokenType::LEFT_PAREN);
+        addToken(LEFT_PAREN);
       }
     }
 

@@ -1,5 +1,6 @@
 #include "lowerer.hpp"
 #include "token_type.hpp"
+#include "value.hpp"
 #include <optional>
 #include <sstream>
 #include <variant>
@@ -14,7 +15,8 @@ std::string Lowerer::toString(const Value &val) {
           return oss.str();
         } else if constexpr (std::is_same_v<T, Error>) {
           return "Error in Lowerer::toString";
-        } else if constexpr (std::is_same_v<T, Function>) {
+        } else if constexpr (std::is_same_v<T, BuiltinFunction> ||
+                             std::is_same_v<T, UserFunction>) {
           return "Function";
         } else if constexpr (std::is_same_v<T, std::monostate>) {
           return "none";
@@ -125,9 +127,11 @@ Value Lowerer::eval(const Document::Expr &expr) {
   return std::visit(
       [&](auto const &node) -> Value {
         using T = std::remove_cvref_t<decltype(node)>;
-        if constexpr (std::is_same_v<T, Document::Expr::Num> ||
-                      std::is_same_v<T, Document::Expr::Str> ||
-                      std::is_same_v<T, Document::Expr::Bool>) {
+        if constexpr (std::is_same_v<T, Document::Expr::Call>) {
+          return evalCall(node, expr.span);
+        } else if constexpr (std::is_same_v<T, Document::Expr::Num> ||
+                             std::is_same_v<T, Document::Expr::Str> ||
+                             std::is_same_v<T, Document::Expr::Bool>) {
           return Value{node.value};
         } else if constexpr (std::is_same_v<T, Document::Expr::Binary>) {
           auto lhs = eval(*node.lhs);
@@ -210,7 +214,6 @@ std::optional<Value> Lowerer::tryBinaryOp(const Value &lhs, const Value &rhs,
     default:
       return std::nullopt;
     }
-
 
   } else if constexpr (std::is_same_v<T, bool>) {
     // Only support comparisons for bools
@@ -309,4 +312,104 @@ Value Lowerer::evalUnaryOp(const Value &rhs, TokenType op, SourceSpan span) {
 
 void Lowerer::error(std::string message, SourceSpan span) {
   diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
+}
+
+Value Lowerer::evalCall(const Document::Expr::Call &node, SourceSpan span) {
+
+  auto func_value = environment_->get(node.callee);
+  if (!func_value) {
+    error("Undefined function '" + node.callee + "'", span);
+    return Value{Error{"Undefined function"}};
+  }
+
+  // Eval args
+  std::vector<Value> args;
+  args.reserve(node.args.size());
+  for (auto &arg : node.args) {
+    args.push_back(eval(*arg));
+  }
+
+  return std::visit(
+      [&](auto const &v) -> Value {
+        using T = std::remove_cvref_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, BuiltinFunction> ||
+                      std::is_same_v<T, UserFunction>) {
+          return callFunction(v, args, span);
+        } else {
+          error("'" + node.callee + "' is not a function", span);
+          return Value{Error{"Not a function"}};
+        }
+      },
+      func_value->v);
+}
+
+Value Lowerer::callFunction(const BuiltinFunction &func,
+                            const std::vector<Value> &args, SourceSpan span) {
+  // Check arity
+  if (args.size() != static_cast<size_t>(func.arity)) {
+    error("Expected " + std::to_string(func.arity) + " arguments", span);
+    return Value{Error{"Arity mismatch"}};
+  }
+
+  if (func.name == "max") {
+    auto a = std::get_if<double>(&args[0].v);
+    auto b = std::get_if<double>(&args[1].v);
+    if (!a || !b) {
+      error("#max(x, y) requires numeric arguments", span);
+      return Value{Error{"Type error"}};
+    }
+    return Value{std::max(*a, *b)};
+  } else if (func.name == "min") {
+    auto a = std::get_if<double>(&args[0].v);
+    auto b = std::get_if<double>(&args[1].v);
+    if (!a || !b) {
+      error("#min(x, y) requires numeric arguments", span);
+      return Value{Error{"Type error"}};
+    }
+    return Value{std::min(*a, *b)};
+  } else if (func.name == "len") {
+    return std::visit(
+        [&](auto const &v) -> Value {
+          using T = std::remove_cvref_t<decltype(v)>;
+          if constexpr (std::is_same_v<T, std::string>) {
+            return Value{static_cast<double>(v.size())};
+          } else {
+            error("len() requires a string argument", span);
+            return Value{Error{"Type error"}};
+          }
+        },
+        args[0].v);
+  } else if (func.name == "abs") {
+    auto value = std::get_if<double>(&args[0].v);
+    if (!value) {
+      error("#abs(x) requires numeric argument", span);
+      return Value{Error{"Type error"}};
+    }
+    return Value{std::abs(*value)};
+  }
+  error("Unknown built-in function: " + func.name, span);
+  return Value{Error{"Unknown function"}};
+}
+
+Value Lowerer::callFunction(const UserFunction &func,
+                            const std::vector<Value> &args, SourceSpan span) {
+  // Check arity
+  if (args.size() != func.params.size()) {
+    error("Expected " + std::to_string(func.params.size()) + " arguments",
+          span);
+    return Value{Error{"Arity mismatch"}};
+  }
+
+  auto call_env = std::make_shared<Environment>(func.closure);
+
+  for (size_t i = 0; i < func.params.size(); ++i) {
+    call_env->define(func.params[i], args[i]);
+  }
+
+  auto previous_env = environment_;
+  environment_ = call_env;
+  Value result = eval(*func.body);
+  environment_ = previous_env;
+
+  return result;
 }

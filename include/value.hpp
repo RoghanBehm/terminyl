@@ -5,16 +5,20 @@
 #include <string>
 #include <variant>
 
-struct Function {
-  std::vector<std::string> params;
-  Document::Expr::Ptr body;
-  std::shared_ptr<Environment> closure;
+struct BuiltinFunction {
+  std::string name;
+  int arity;
 };
 
+struct UserFunction {
+  std::vector<std::string> params;
+  Document::ExprPtr body;
+  std::shared_ptr<Environment> closure;
+};
 struct Error {
   std::string message;
 };
 
 struct Value {
-  std::variant<double, std::string, bool, Error, Function, std::monostate> v;
+  std::variant<double, std::string, bool, Error, UserFunction, BuiltinFunction, std::monostate> v;
 };

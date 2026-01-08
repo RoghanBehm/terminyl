@@ -53,6 +53,7 @@ private:
   Document::Expr::Ptr primary();
   void synchronize();
   Document::Block block();
+  Document::ExprPtr call(std::string name);
   DiagnosticSet diagnostics_;
   void error(std::string message, SourceSpan span);
 };
