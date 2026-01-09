@@ -82,3 +82,14 @@ Document::Expr::Ptr Document::Expr::make_fn(std::vector<std::string> params,
 Document::Expr::Ptr Document::Expr::make_none(SourceSpan sp) {
   return std::make_shared<Expr>(None{}, sp);
 }
+
+Document::Block::Ptr Document::Block::make_heading(int level, std::string text,
+                                                   SourceSpan sp) {
+  return std::make_shared<Block>(Heading{level, std::move(text)}, sp);
+}
+
+Document::Block::Ptr
+Document::Block::make_paragraph(std::vector<Inline::Ptr> inlines,
+                               SourceSpan sp) {
+  return std::make_shared<Block>(Paragraph{std::move(inlines)}, sp);
+}

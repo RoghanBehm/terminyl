@@ -12,15 +12,15 @@ void Emitter::render(std::ostream &out, const Document &doc) const {
         [&](const auto &b) {
           using T = std::remove_cvref_t<decltype(b)>;
 
-          if constexpr (std::is_same_v<T, Document::Heading>) {
+          if constexpr (std::is_same_v<T, Document::Block::Heading>) {
             out << box_heading(b.text, b.level) << "\n";
-          } else if constexpr (std::is_same_v<T, Document::Paragraph>) {
+          } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
             wrap_paragraph(out, b.inlines, style_.width,
                            style_.paragraph_indent);
             out << "\n";
           }
         },
-        blk);
+        blk->node);
   }
 }
 

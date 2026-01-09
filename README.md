@@ -1,7 +1,7 @@
 # terminyl
 A terminal-first markup language and renderer with inline expressions, including first-class functions. It parses lightweight text markup and renders width-aware output using ANSI styling and UTF-8 box-drawing characters.
 
-Terminyl is evolving toward a programmable markup system, inspired by Typst, where expressions and control flow can generate document structure. The last major missing piece is control flow.
+Terminyl is evolving toward a programmable markup system, inspired by Typst (meaning, I almost entirely lifted their syntax with only small deviations, e.g., functions are defined slightly differently), where expressions and control flow can generate document structure. The last major missing piece is control flow.
 
 ## Example
 ```bash
@@ -10,9 +10,11 @@ build/terminyl src/demo.termy
 Sample input in `src/demo.termy`.
 
 ## Building
+
 ```bash
 ./install.sh
 ```
+The only dependency is CMake.
 
 ## Architecture
 ```mermaid
@@ -37,15 +39,8 @@ Terminyl uses a multi-stage pipeline:
 
 ## Features
 
-### Error Reporting
 
-The document compiler features helpful, pretty error messages with:
-- Precise source locations with line and column numbers
-- Colour-coded by severity (red for errors, yellow for warnings)
-- Source context with the offending line and surrounding code
-- Arrows pointing to exact error positions
 
-![Demo](terminyl_error.png)
 
 ### Markup (implemented)
 - Multi-level headings with UTF-8 box-drawing styles
@@ -57,7 +52,7 @@ The document compiler features helpful, pretty error messages with:
 
 ### Expressions (implemented)
 - Inline expression splices using `#( … )`
-- Numeric literals and basic binary operators (+, -, *, /, ==, >=, <=, !=, >)
+- Numeric literals, unary and binary operators
 - Expression results are evaluated and inserted into the document
 - Variables and bindings
 - Builtin functions
@@ -65,6 +60,16 @@ The document compiler features helpful, pretty error messages with:
 
 ### Statements (planned)
 - Control flow
+
+### Error Reporting
+The document compiler features helpful, pretty error messages with:
+- Precise source locations with line and column numbers
+- Colour-coded by severity (red for errors, yellow for warnings)
+- Source context with the offending line and surrounding code
+- Arrows pointing to exact error positions
+
+
+![Demo](terminyl_error.png)
 
 ## Design Goals
 

@@ -79,6 +79,7 @@ public:
     static Ptr make_fn(std::vector<std::string> params, Expr::Ptr body,
                        SourceSpan span);
   };
+
   struct Inline {
     using Ptr = std::shared_ptr<Inline>;
 
@@ -125,25 +126,36 @@ public:
     static Ptr make_let(std::string name, Expr::Ptr value, SourceSpan sp);
   };
 
+  struct Block {
+    using Ptr = std::shared_ptr<Block>;
+
+    struct Heading {
+      int level = 0;
+      std::string text;
+    };
+
+    struct Paragraph {
+      std::vector<Inline::Ptr> inlines;
+    };
+
+    std::variant<Heading, Paragraph> node;
+    SourceSpan span{};
+
+    Block(Heading h, SourceSpan sp) : node(std::move(h)), span(sp) {}
+    Block(Paragraph p, SourceSpan sp) : node(std::move(p)), span(sp) {}
+
+    static Ptr make_heading(int level, std::string text, SourceSpan sp);
+    static Ptr make_paragraph(std::vector<Inline::Ptr> inlines, SourceSpan sp);
+  };
+
   using InlinePtr = Inline::Ptr;
   using ExprPtr = Expr::Ptr;
-  struct Heading {
-    int level = 0;
-    SourceSpan span{};
-    std::string text;
-  };
+  using BlockPtr = Block::Ptr;
 
-  struct Paragraph {
-    SourceSpan span{};
-    std::vector<InlinePtr> inlines;
-  };
-
-  using Block = std::variant<Heading, Paragraph>;
-
-  const std::vector<Block> &blocks() const { return blocks_; }
-  void add(Block b) { blocks_.push_back(std::move(b)); }
+  const std::vector<BlockPtr> &blocks() const { return blocks_; }
+  void add(BlockPtr b) { blocks_.push_back(std::move(b)); }
   static Document parse(std::istream &in);
 
 private:
-  std::vector<Block> blocks_;
+  std::vector<BlockPtr> blocks_;
 };

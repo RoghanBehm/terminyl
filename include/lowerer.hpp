@@ -19,7 +19,7 @@ private:
   lowerInlines(const std::vector<Document::InlinePtr> &inlines);
   void error(std::string message, SourceSpan span);
   DiagnosticSet diagnostics_;
-  bool isLetOnlyParagraph(const Document::Paragraph &p);
+  bool isLetOnlyParagraph(const Document::Block::Paragraph &p);
 
   Value eval(const Document::Expr &expr);
   Value evalCall(const Document::Expr::Call &node, SourceSpan span);

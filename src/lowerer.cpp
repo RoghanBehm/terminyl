@@ -35,9 +35,9 @@ Document Lowerer::lower() {
         [&](auto const &b) {
           using T = std::remove_cvref_t<decltype(b)>;
 
-          if constexpr (std::is_same_v<T, Document::Heading>) {
-            out.add(b);
-          } else if constexpr (std::is_same_v<T, Document::Paragraph>) {
+          if constexpr (std::is_same_v<T, Document::Block::Heading>) {
+            out.add(Document::Block::make_heading(b.level, b.text, blk->span));
+          } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
             auto lowered = lowerInlines(b.inlines);
 
             if (lowered.empty() && !b.inlines.empty() &&
@@ -46,18 +46,16 @@ Document Lowerer::lower() {
             }
 
             // Normal paragraph
-            Document::Paragraph p = b;
-            p.inlines = std::move(lowered);
-            out.add(std::move(p));
+            out.add(Document::Block::make_paragraph(std::move(lowered), blk->span));
           }
         },
-        blk);
+        blk->node);
   }
 
   return out;
 }
 
-bool Lowerer::isLetOnlyParagraph(const Document::Paragraph &p) {
+bool Lowerer::isLetOnlyParagraph(const Document::Block::Paragraph &p) {
   bool has_let = false;
   bool has_visible = false;
 

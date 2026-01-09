@@ -35,12 +35,12 @@ Parser::laparse(const std::function<Document::Expr::Ptr()> &op_type,
   return lhs;
 }
 
-Document::Heading Parser::heading() {
+Document::BlockPtr Parser::heading() {
   const Token &token = advance();
 
-  Document::Heading heading;
-  heading.level = static_cast<int>(token.getLexeme().size());
-  heading.span.start = token.span().start;
+  int level = static_cast<int>(token.getLexeme().size());
+  SourceSpan span;
+  span.start = token.span().start;
 
   std::string text;
   if (check(TokenType::TEXT)) {
@@ -51,23 +51,22 @@ Document::Heading Parser::heading() {
   if (check(TokenType::NEWLINE))
     advance();
 
-  heading.text = std::move(text);
-  heading.span.end = previous().span().end;
-  return heading;
+  span.end = previous().span().end;
+  return Document::Block::make_heading(level, std::move(text), span);
 }
 
-Document::Paragraph Parser::paragraph() {
-  Document::Paragraph para;
-  para.span.start = peek().span().start;
+Document::BlockPtr Parser::paragraph() {
+  SourceSpan span;
+  span.start = peek().span().start;
 
-  para.inlines = parseInlines(TokenType::NEWLINE);
+  auto inlines = parseInlines(TokenType::NEWLINE);
 
   if (check(TokenType::NEWLINE)) {
     advance();
   }
 
-  para.span.end = previous().span().end;
-  return para;
+  span.end = previous().span().end;
+  return Document::Block::make_paragraph(std::move(inlines), span);
 }
 
 std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
@@ -413,7 +412,7 @@ Document::ExprPtr Parser::primary() {
   return Document::Expr::make_num(0.0, previous().span()); // Error placeholder
 }
 
-Document::Block Parser::block() {
+Document::BlockPtr Parser::block() {
   if (check(TokenType::HEADING_MARK))
     return heading();
   return paragraph();

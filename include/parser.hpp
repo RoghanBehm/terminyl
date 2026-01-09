@@ -13,8 +13,8 @@ public:
 private:
   const std::vector<Token> tokens_;
   void skipBlanks();
-  Document::Heading heading();
-  Document::Paragraph paragraph();
+  Document::BlockPtr heading();
+  Document::BlockPtr paragraph();
   int current = 0;
   bool check(TokenType type);
   bool match(TokenType type);
@@ -52,7 +52,7 @@ private:
   Document::Expr::Ptr unary();
   Document::Expr::Ptr primary();
   void synchronize();
-  Document::Block block();
+  Document::BlockPtr block();
   Document::Expr::Ptr call(std::string name);
   Document::Expr::Ptr function();
   DiagnosticSet diagnostics_;

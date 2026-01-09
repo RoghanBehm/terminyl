@@ -3,7 +3,8 @@
 ## Priority
 - Support more expressions
 - Control flow
-
+- Implement arrays
+- Add markdown-style lists
 
 ## Required
 - Add more builtins
