@@ -5,9 +5,9 @@ Terminyl is evolving toward a programmable markup system, inspired by Typst (mea
 
 ## Example
 ```bash
-build/terminyl src/demo.termy
+build/terminyl examples/demo.termy
 ```
-Sample input in `src/demo.termy`.
+Sample input in `examples/demo.termy`.
 
 ## Building
 
@@ -35,7 +35,7 @@ Terminyl uses a multi-stage pipeline:
 
 ## Current Example
 
-![Terminyl demo: source and rendered output](terminyl.png)
+![Terminyl demo: source and rendered output](assets/terminyl.png)
 
 ## Features
 
@@ -69,7 +69,7 @@ The document compiler features helpful, pretty error messages with:
 - Arrows pointing to exact error positions
 
 
-![Demo](terminyl_error.png)
+![Demo](assets/terminyl_error.png)
 
 ## Design Goals
 
