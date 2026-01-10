@@ -17,6 +17,7 @@ public:
   std::vector<Token> scan_tokens();
   void addToken(TokenType type);
   void addToken(TokenType type, Literal value);
+  void addToken(TokenType type, std::string_view lexeme, Literal value);
   void lexToken();
   void heading();
   std::vector<Token> lexTokens();
@@ -28,6 +29,16 @@ private:
     TEXT,       // Normal text mode: spaces significant
     EXPRESSION, // Expression mode: skip whitespace
   };
+
+  std::vector<std::string> string_pool_;
+
+  // String processing without storing strings
+  std::string_view storeProcessed(std::string processed) {
+    string_pool_.push_back(std::move(processed));
+    return string_pool_.back();
+  }
+
+  std::string processEscapes(std::string_view raw);
 
   char peekNext();
   char advance();

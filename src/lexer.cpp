@@ -25,6 +25,10 @@ void Lexer::addToken(TokenType type, Literal value) {
   tokens.emplace_back(type, text, SourceSpan{start_pos, cur_pos}, value);
 }
 
+void Lexer::addToken(TokenType type, std::string_view lexeme, Literal value) {
+  tokens.emplace_back(type, lexeme, SourceSpan{start_pos, cur_pos}, value);
+}
+
 char Lexer::peek() {
   if (isAtEnd())
     return '\0';
@@ -257,9 +261,24 @@ std::vector<Token> Lexer::lexTokens() {
 
 void Lexer::text() {
   while (!isAtEnd() && !isSpecialChar(peek())) {
-    advance();
+    // Character escape check
+    if (peek() == '\\' && current + 1 < source_.size()) {
+      advance();
+      if (!isAtEnd()) {
+        advance();
+      }
+    } else {
+      advance();
+    }
   }
-  addToken(TokenType::TEXT);
+  std::string_view raw{getSource().data() + start, current - start};
+  if (raw.find('\\') != std::string_view::npos) {
+    std::string processed = processEscapes(raw);
+    std::string_view value = storeProcessed(std::move(processed));
+    addToken(TokenType::TEXT, value, std::monostate{});
+  } else {
+    addToken(TokenType::TEXT);
+  }
 }
 
 void Lexer::number() {
@@ -282,7 +301,13 @@ void Lexer::string() {
       addToken(TokenType::STRING, std::string_view{});
       return;
     }
-    advance();
+
+    if (peek() == '\\' && peekNext() != '\0') {
+      advance();
+      advance();
+    } else {
+      advance();
+    }
   }
 
   if (isAtEnd()) {
@@ -292,8 +317,16 @@ void Lexer::string() {
   }
 
   advance();
-  std::string_view value{getSource().data() + start + 1, (current - start) - 2};
-  addToken(TokenType::STRING, value);
+
+  std::string_view raw{getSource().data() + start + 1, (current - start) - 2};
+
+  if (raw.find('\\') != std::string_view::npos) {
+    std::string processed = processEscapes(raw);
+    std::string_view value = storeProcessed(std::move(processed));
+    addToken(TokenType::STRING, value, value); 
+  } else {
+    addToken(TokenType::STRING, raw, raw);  
+  }
 }
 
 bool Lexer::isSpecialChar(char c) {
@@ -318,8 +351,7 @@ void Lexer::identifier() {
   while (isAlphaNumeric(peek()))
     advance();
 
-  std::string_view text{source_.data() + start,
-                        static_cast<size_t>(current - start)};
+  std::string_view text{source_.data() + start, (current - start)};
   auto it = keywords.find(text);
   TokenType type = (it != keywords.end()) ? it->second : TokenType::IDENTIFIER;
   addToken(type);
@@ -327,4 +359,66 @@ void Lexer::identifier() {
 
 void Lexer::error(std::string message, SourceSpan span) {
   diagnostics_.add(Diagnostic(ErrorLevel::Error, std::move(message), span));
+}
+
+std::string Lexer::processEscapes(std::string_view raw) {
+  std::string result;
+  result.reserve(raw.size());
+
+  for (size_t i = 0; i < raw.size(); ++i) {
+    if (raw[i] == '\\' && i + 1 < raw.size()) {
+      char next = raw[i + 1];
+
+      switch (next) {
+      // Markup escapes (remove backslash)
+      case '*':
+        result += '*';
+        i++;
+        break;
+      case '_':
+        result += '_';
+        i++;
+        break;
+      case '`':
+        result += '`';
+        i++;
+        break;
+      case '#':
+        result += '#';
+        i++;
+        break;
+      case '\\':
+        result += '\\';
+        i++;
+        break;
+
+      // Standard escapes
+      case 'n':
+        result += '\n';
+        i++;
+        break;
+      case 't':
+        result += '\t';
+        i++;
+        break;
+      case 'r':
+        result += '\r';
+        i++;
+        break;
+      case '"':
+        result += '"';
+        i++;
+        break;
+
+      default:
+        // Unknown escape
+        result += '\\';
+        break;
+      }
+    } else {
+      result += raw[i];
+    }
+  }
+
+  return result;
 }

@@ -50,3 +50,7 @@ Product: #multiply(6, 7)
 Net profit: $#profit(1000, 400, 0.2)
 
 Use the `profit` function to calculate *after-tax earnings* with _any parameters_.
+
+
+
+

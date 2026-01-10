@@ -1,0 +1,57 @@
+== Basic Text Escapes
+
+This has a \* literal asterisk, not bold.
+
+This has a \_ literal underscore, not italic.
+
+This has a \` literal backtick, not code.
+
+This has a \# literal hash, not an expression.
+
+This is a \\ literal backslash.
+
+== Mixed Formatting
+
+This is *bold with \* escaped asterisk inside*.
+
+This is _italic with \_ escaped underscore inside_.
+
+This is `code with \` escaped backtick`.
+
+== String Literal Escapes
+
+#let msg = "Hello \"world\" with escaped quotes"
+
+#let path = "C:\\Users\\Documents\\file.txt"
+
+#let multiline = "Line 1\nLine 2\nLine 3"
+
+#let tab = "Column1\tColumn2\tColumn3"
+
+== Complex Cases
+
+This text has \*\*double escaped asterisks\*\*.
+
+Mixing: *bold text with \* escaped* and normal \* escaped.
+
+Edge case: backslash at end\\
+
+#let complex = "String with \"quotes\", \\backslashes\\, and \nnewlines"
+
+== All Escapes Together
+
+Text: \* \_ \` \# \\
+
+String: #let all = "\* \_ \` \# \\ \" \n \t \r"
+
+== Should Still Work
+
+*Actually bold*
+
+_Actually italic_
+
+`Actually code`
+
+#let x = 42
+
+Regular text with #x interpolation.
