@@ -107,7 +107,32 @@ void Lexer::lexToken() {
     addToken(PLUS);
     break;
   case '/':
-    addToken(SLASH);
+    if (match('/')) {
+      while (peek() != '\n' && !isAtEnd())
+        advance();
+    } else if (match('*')) {
+      int nesting = 1;
+      while (!isAtEnd()) {
+        if (peek() == '/' && peekNext() == '*') {
+          nesting++;
+          advance();
+          advance();
+        } else if (peek() == '*' && peekNext() == '/') {
+          nesting--;
+          advance();
+          advance();
+          if (nesting == 0)
+            break;
+        } else {
+          advance();
+        }
+      }
+      if (nesting > 0) {
+        error("Unterminated block comment", SourceSpan{start_pos, cur_pos});
+      }
+    } else {
+      addToken(SLASH);
+    }
     break;
   case '#':
     addToken(TokenType::HASH);
@@ -323,9 +348,9 @@ void Lexer::string() {
   if (raw.find('\\') != std::string_view::npos) {
     std::string processed = processEscapes(raw);
     std::string_view value = storeProcessed(std::move(processed));
-    addToken(TokenType::STRING, value, value); 
+    addToken(TokenType::STRING, value, value);
   } else {
-    addToken(TokenType::STRING, raw, raw);  
+    addToken(TokenType::STRING, raw, raw);
   }
 }
 
