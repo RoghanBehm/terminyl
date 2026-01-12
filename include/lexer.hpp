@@ -67,6 +67,8 @@ private:
   bool in_code_span_ = false;
   bool paren_triggered_expr_ = false; // Track if #( triggered expression mode
   bool pending_block_directive_ = false;
+  int bracket_depth_ = 0;
+  int in_markdown_literal_ = false;
   void error(std::string message, SourceSpan span);
 
   // Reserved words

@@ -94,9 +94,24 @@ void Lexer::lexToken() {
     }
     break;
   case '[':
-    addToken(LEFT_SQ_BRACKET);
+    addToken(LEFT_SQ_BRACKET); // Already exists!
+
+    if (mode_ == LexerMode::EXPRESSION || mode_ == LexerMode::BLOCK) {
+      // Entering markdown literal
+      mode_ = LexerMode::TEXT;
+      in_markdown_literal_ = true;
+      bracket_depth_ = 1;
+    }
     break;
+
   case ']':
+    if (in_markdown_literal_) {
+      bracket_depth_--;
+      if (bracket_depth_ == 0) {
+        in_markdown_literal_ = false;
+        mode_ = LexerMode::BLOCK;
+      }
+    }
     addToken(RIGHT_SQ_BRACKET);
     break;
   case ',':

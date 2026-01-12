@@ -387,6 +387,7 @@ Document::ExprPtr Parser::primary() {
     return e;
   }
 
+
   error("Expected literal or '('", peek().span());
   synchronize();
   return Document::Expr::make_num(0.0, previous().span()); // Error placeholder
@@ -430,6 +431,18 @@ Document::BlockPtr Parser::whileBlock() {
 
 
 Document::BlockPtr Parser::whileBody() {
+    if (check(TokenType::LEFT_SQ_BRACKET)) {
+    SourceSpan span = peek().span();
+    advance(); // '['
+    
+    auto inlines = parseInlines(TokenType::RIGHT_SQ_BRACKET);
+    consume(TokenType::RIGHT_SQ_BRACKET, "Expected ']'");
+    
+    if (check(TokenType::NEWLINE)) advance();
+    span.end = previous().span().end;
+    
+    return Document::Block::make_paragraph(std::move(inlines), span);
+  }
   if (check(TokenType::IDENTIFIER) &&
       peekNext().getType() == TokenType::EQUAL) {
     return assignStmt();

@@ -61,4 +61,5 @@ private:
   Document::Expr::Ptr function();
   DiagnosticSet diagnostics_;
   void error(std::string message, SourceSpan span);
+  Document::ExprPtr markdownLiteral();
 };
