@@ -53,6 +53,10 @@ private:
   Document::Expr::Ptr primary();
   void synchronize();
   Document::BlockPtr block();
+  Document::BlockPtr whileBlock();
+  Document::BlockPtr whileBody();
+  Document::BlockPtr exprStmt();
+  Document::BlockPtr assignStmt();
   Document::Expr::Ptr call(std::string name);
   Document::Expr::Ptr function();
   DiagnosticSet diagnostics_;

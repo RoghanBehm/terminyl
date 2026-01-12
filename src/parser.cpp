@@ -35,26 +35,6 @@ Parser::laparse(const std::function<Document::Expr::Ptr()> &op_type,
   return lhs;
 }
 
-Document::BlockPtr Parser::heading() {
-  const Token &token = advance();
-
-  int level = static_cast<int>(token.getLexeme().size());
-  SourceSpan span;
-  span.start = token.span().start;
-
-  std::string text;
-  if (check(TokenType::TEXT)) {
-    const Token &t = advance();
-    text = std::string(t.getLexeme());
-  }
-
-  if (check(TokenType::NEWLINE))
-    advance();
-
-  span.end = previous().span().end;
-  return Document::Block::make_heading(level, std::move(text), span);
-}
-
 Document::BlockPtr Parser::paragraph() {
   SourceSpan span;
   span.start = peek().span().start;
@@ -415,10 +395,106 @@ Document::ExprPtr Parser::primary() {
 Document::BlockPtr Parser::block() {
   if (check(TokenType::HEADING_MARK))
     return heading();
+
+  if (check(TokenType::HASH)) {
+    if (peekNext().getType() == TokenType::WHILE)
+      return whileBlock();
+  }
   return paragraph();
 }
 
+Document::BlockPtr Parser::whileBlock() {
+  SourceSpan span;
+  span.start = peek().span().start; // '#'
+
+  consume(TokenType::HASH, "Expected '#'");
+  consume(TokenType::WHILE, "Expected 'while' after '#'");
+
+  Document::ExprPtr cond = expression();
+
+  consume(TokenType::LEFT_BRACE, "Expected '{' after while condition");
+
+  skipBlanks();
+
+  std::vector<Document::BlockPtr> body;
+  while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+    body.push_back(whileBody());
+    skipBlanks();
+  }
+
+  consume(TokenType::RIGHT_BRACE, "Expected '}' after while body");
+
+  span.end = previous().span().end;
+  return Document::Block::make_while(std::move(cond), std::move(body), span);
+}
+
+
+Document::BlockPtr Parser::whileBody() {
+  if (check(TokenType::IDENTIFIER) &&
+      peekNext().getType() == TokenType::EQUAL) {
+    return assignStmt();
+  }
+  return exprStmt();
+}
+
+Document::BlockPtr Parser::assignStmt() {
+  SourceSpan span;
+  span.start = peek().span().start;
+
+  consume(TokenType::IDENTIFIER, "Expected identifier");
+  std::string name = std::string(previous().getLexeme());
+
+  consume(TokenType::EQUAL, "Expected '=' after identifier");
+  Document::ExprPtr value = expression();
+
+  if (check(TokenType::NEWLINE)) advance();
+  span.end = previous().span().end;
+
+  return Document::Block::make_assign(std::move(name), std::move(value), span);
+}
+
+Document::BlockPtr Parser::exprStmt() {
+  SourceSpan span;
+  span.start = peek().span().start;
+
+  Document::ExprPtr e = expression();
+
+  if (check(TokenType::NEWLINE)) advance();
+  span.end = previous().span().end;
+
+  return Document::Block::make_exprstmt(std::move(e), span);
+}
+
+
+Document::BlockPtr Parser::heading() {
+  const Token &token = advance();
+
+  int level = static_cast<int>(token.getLexeme().size());
+  SourceSpan span;
+  span.start = token.span().start;
+
+  std::string text;
+  if (check(TokenType::TEXT)) {
+    const Token &t = advance();
+    text = std::string(t.getLexeme());
+  }
+
+  if (check(TokenType::NEWLINE))
+    advance();
+
+  span.end = previous().span().end;
+  return Document::Block::make_heading(level, std::move(text), span);
+}
+
 const Token &Parser::peek() const { return tokens_.at(current); }
+
+const Token& Parser::peekNext() const {
+  if (current + 1 >= static_cast<int>(tokens_.size())) {
+    return tokens_.back();
+  }
+  return tokens_.at(current + 1);
+}
+
 
 const Token &Parser::previous() const {
   assert(current > 0);

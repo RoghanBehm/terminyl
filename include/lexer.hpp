@@ -28,6 +28,7 @@ private:
   enum class LexerMode : std::uint8_t {
     TEXT,       // Normal text mode: spaces significant
     EXPRESSION, // Expression mode: skip whitespace
+    BLOCK,      // Code block body, e.g. #while body
   };
 
   std::vector<std::string> string_pool_;
@@ -65,6 +66,7 @@ private:
   int paren_depth_ = 0;
   bool in_code_span_ = false;
   bool paren_triggered_expr_ = false; // Track if #( triggered expression mode
+  bool pending_block_directive_ = false;
   void error(std::string message, SourceSpan span);
 
   // Reserved words
@@ -72,5 +74,5 @@ private:
       {{"true", TokenType::TRUE}, {"false", TokenType::FALSE},
        {"let", TokenType::LET},   {"if", TokenType::IF},
        {"else", TokenType::ELSE}, {"fn", TokenType::FN},
-       {"none", TokenType::NONE}};
+       {"none", TokenType::NONE}, {"while", TokenType::WHILE}};
 };

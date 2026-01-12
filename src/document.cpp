@@ -1,4 +1,5 @@
 #include "document.hpp"
+#include <memory>
 
 Document::Inline::Ptr Document::Inline::make_text(std::string s,
                                                   SourceSpan sp) {
@@ -93,3 +94,20 @@ Document::Block::make_paragraph(std::vector<Inline::Ptr> inlines,
                                SourceSpan sp) {
   return std::make_shared<Block>(Paragraph{std::move(inlines)}, sp);
 }
+
+Document::Block::Ptr
+Document::Block::make_while(std::shared_ptr<Expr> cond, std::vector<Block::Ptr> body, SourceSpan sp) {
+  return std::make_shared<Block>(While{std::move(cond), std::move(body)}, sp);
+}
+
+
+Document::Block::Ptr
+Document::Block::make_assign(std::string name, Expr::Ptr value, SourceSpan sp) {
+  return std::make_shared<Block>(Assign{std::move(name), std::move(value)}, sp);
+}
+
+Document::Block::Ptr
+Document::Block::make_exprstmt(Expr::Ptr expr, SourceSpan sp) {
+  return std::make_shared<Block>(ExprStmt{std::move(expr)}, sp);
+}
+

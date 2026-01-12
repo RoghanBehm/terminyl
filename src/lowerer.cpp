@@ -1,4 +1,5 @@
 #include "lowerer.hpp"
+#include "document.hpp"
 #include "token_type.hpp"
 #include "value.hpp"
 #include <optional>
@@ -29,30 +30,63 @@ std::string Lowerer::toString(const Value &val) {
 
 Document Lowerer::lower() {
   Document out;
-
   for (auto const &blk : getDoc().blocks()) {
-    std::visit(
-        [&](auto const &b) {
-          using T = std::remove_cvref_t<decltype(b)>;
-
-          if constexpr (std::is_same_v<T, Document::Block::Heading>) {
-            out.add(Document::Block::make_heading(b.level, b.text, blk->span));
-          } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
-            auto lowered = lowerInlines(b.inlines);
-
-            if (lowered.empty() && !b.inlines.empty() &&
-                isLetOnlyParagraph(b)) {
-              return;
-            }
-
-            // Normal paragraph
-            out.add(Document::Block::make_paragraph(std::move(lowered), blk->span));
-          }
-        },
-        blk->node);
+    execStmt(blk, out);
   }
-
   return out;
+}
+
+void Lowerer::execStmt(const Document::BlockPtr &blk, Document &out) {
+  std::visit(
+      [&](auto const &b) {
+        using T = std::remove_cvref_t<decltype(b)>;
+
+        if constexpr (std::is_same_v<T, Document::Block::Assign>) {
+          Value v = eval(*b.value);
+          if (!environment_->assign(b.name, v)) {
+            error("Assign to undefined variable '" + b.name + "'", blk->span);
+          }
+          return;
+
+        } else if constexpr (std::is_same_v<T, Document::Block::ExprStmt>) {
+          Value v = eval(*b.expr);
+          // emit as paragraph (or inline text)
+          std::vector<Document::InlinePtr> inls;
+          inls.push_back(Document::Inline::make_text(toString(v), blk->span));
+          out.add(Document::Block::make_paragraph(std::move(inls), blk->span));
+        } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
+          auto lowered = lowerInlines(b.inlines);
+          if (lowered.empty() && !b.inlines.empty() && isLetOnlyParagraph(b))
+            return;
+          out.add(
+              Document::Block::make_paragraph(std::move(lowered), blk->span));
+        } else if constexpr (std::is_same_v<T, Document::Block::Heading>) {
+          out.add(Document::Block::make_heading(b.level, b.text, blk->span));
+        } else if constexpr (std::is_same_v<T, Document::Block::While>) {
+          execWhile(b, blk->span, out);
+        }
+      },
+      blk->node);
+}
+
+void Lowerer::execWhile(const Document::Block::While &w, SourceSpan span,
+                        Document &out) {
+                          int iters = 0;
+  while (true) {
+      if (++iters > 100000) {   std::cerr << "while iters = " << iters << "\n"; }
+    Value condv = eval(*w.cond);
+    auto b = std::get_if<bool>(&condv.v);
+    if (!b) {
+      error("While condition must be boolean", span);
+      return;
+    }
+    if (!*b)
+      break;
+
+    for (auto const &stmt : w.body) {
+      execStmt(stmt, out);
+    }
+  }
 }
 
 bool Lowerer::isLetOnlyParagraph(const Document::Block::Paragraph &p) {

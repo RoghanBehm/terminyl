@@ -10,6 +10,8 @@ enum class TokenType : std::uint8_t {
     RIGHT_PAREN,     // ')'
     LEFT_SQ_BRACKET,   // '['
     RIGHT_SQ_BRACKET,   // ']'
+    LEFT_BRACE,   // '{'
+    RIGHT_BRACE, // '}'
     COLON,      // ':'
     COMMA,      // ','
     STRING,     // "hi"
@@ -31,6 +33,7 @@ enum class TokenType : std::uint8_t {
     AND,
     NONE,
     SPACE,
+    WHILE,
 
 
     // One or two character tokens.

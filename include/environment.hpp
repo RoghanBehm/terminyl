@@ -15,8 +15,10 @@ public:
   explicit Environment(std::shared_ptr<Environment> enc = nullptr);
   
   void define(const std::string& name, Value val);
+  bool assign(const std::string& name, const Value& val);
   
   std::optional<Value> get(const std::string& name) const;
 
   static std::shared_ptr<Environment> createGlobal();
+
 };

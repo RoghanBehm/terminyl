@@ -58,10 +58,9 @@ void Lexer::lexToken() {
   case ' ':
   case '\t':
   case '\r':
-    // Only skip whitespace in expression mode
-    if (mode_ == LexerMode::EXPRESSION) {
+    // Only skip whitespace in expression/block mode
+    if (mode_ == LexerMode::EXPRESSION || mode_ == LexerMode::BLOCK)
       return;
-    }
     // In text mode, back up and let text() handle it
     current--;
     cur_pos.column--;
@@ -141,20 +140,27 @@ void Lexer::lexToken() {
       // Temporarily enter expression mode to lex the next token
       if (isAlpha(peek())) {
         mode_ = LexerMode::EXPRESSION;
-        paren_triggered_expr_ = false; // Not paren-triggered
+        paren_triggered_expr_ = false;
 
         start = current;
         start_pos = cur_pos;
         identifier();
 
-        if (tokens.back().getType() != TokenType::LET &&
-            tokens.back().getType() != TokenType::FN && peek() != '(') {
+        auto t = tokens.back().getType();
+        if (t == TokenType::WHILE) {
+          pending_block_directive_ = true;
+        }
+
+        auto ty = tokens.back().getType();
+        if (ty != TokenType::LET && ty != TokenType::FN &&
+            ty != TokenType::WHILE && peek() != '(') {
           mode_ = LexerMode::TEXT;
         }
+
       } else if (peek() == '(') {
         advance();
         paren_depth_ = 1;
-        paren_triggered_expr_ = true; // Paren-triggered expression
+        paren_triggered_expr_ = true;
         mode_ = LexerMode::EXPRESSION;
         addToken(LEFT_PAREN);
       }
@@ -174,6 +180,21 @@ void Lexer::lexToken() {
   case '_':
     addToken(UNDERSCORE);
     break;
+  case '{':
+
+    addToken(TokenType::LEFT_BRACE);
+    if (pending_block_directive_) {
+      pending_block_directive_ = false;
+      mode_ = LexerMode::BLOCK;
+    }
+    break;
+  case '}':
+    addToken(TokenType::RIGHT_BRACE);
+    if (mode_ == LexerMode::BLOCK) {
+      mode_ = LexerMode::TEXT;
+    }
+    break;
+
   case '-':
     addToken(MINUS);
     break;
@@ -219,6 +240,13 @@ void Lexer::lexToken() {
       mode_ = LexerMode::TEXT;
     }
 
+    if (mode_ == LexerMode::BLOCK) {
+      while (peek() == '\n')
+        advance();
+      addToken(TokenType::NEWLINE);
+      break;
+    }
+
     if (peek() == '\n') {
       advance();
 
@@ -241,7 +269,7 @@ void Lexer::lexToken() {
       addToken(match('=') ? EQUAL_EQUAL : EQUAL);
     break;
   default:
-    if (mode_ == LexerMode::EXPRESSION) {
+    if (mode_ == LexerMode::EXPRESSION || mode_ == LexerMode::BLOCK) {
       if (isDigit(c))
         number();
       else if (isAlpha(c))

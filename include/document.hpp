@@ -138,14 +138,35 @@ public:
       std::vector<Inline::Ptr> inlines;
     };
 
-    std::variant<Heading, Paragraph> node;
+    struct While {
+      Expr::Ptr cond;
+      std::vector<Block::Ptr> body;
+    };
+
+    struct Assign {
+      std::string name;
+      Expr::Ptr value;
+    };
+    struct ExprStmt {
+      Expr::Ptr expr;
+    };
+
+    std::variant<Heading, Paragraph, While, Assign, ExprStmt> node;
     SourceSpan span{};
 
     Block(Heading h, SourceSpan sp) : node(std::move(h)), span(sp) {}
     Block(Paragraph p, SourceSpan sp) : node(std::move(p)), span(sp) {}
+    Block(While w, SourceSpan sp) : node(std::move(w)), span(sp) {}
+    Block(Assign a, SourceSpan sp) : node(std::move(a)), span(sp) {}
+    Block(ExprStmt e, SourceSpan sp) : node(std::move(e)), span(sp) {}
 
     static Ptr make_heading(int level, std::string text, SourceSpan sp);
     static Ptr make_paragraph(std::vector<Inline::Ptr> inlines, SourceSpan sp);
+    static Ptr make_while(Expr::Ptr cond, std::vector<Block::Ptr> body,
+                          SourceSpan sp);
+
+    static Ptr make_assign(std::string name, Expr::Ptr value, SourceSpan sp);
+    static Ptr make_exprstmt(Expr::Ptr expr, SourceSpan sp);
   };
 
   using InlinePtr = Inline::Ptr;

@@ -40,4 +40,6 @@ private:
                      SourceSpan span);
   Value evalUnaryOp(const Value &rhs, TokenType op, SourceSpan span);
   std::string toString(const Value &v);
+  void execStmt(const Document::BlockPtr& blk, Document& out);
+  void execWhile(const Document::Block::While& w, SourceSpan span, Document& out);
 };
