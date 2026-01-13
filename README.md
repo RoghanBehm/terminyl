@@ -39,6 +39,22 @@ Terminyl uses a multi-stage pipeline:
 
 ## Syntax
 
+### Markup
+
+- **Headings**: Use `=` for level 1, `==` for level 2, `===` for level 3, etc.
+```
+  = Main Title
+  == Section
+  === Subsection
+```
+
+- **Inline formatting**:
+  - Bold: `*text*`
+  - Italic: `_text_`
+  - Code spans: `` `text` ``
+
+- **Paragraphs**: Separated by blank lines, automatically wrapped to terminal width
+
 ### Expressions
 
 Inline expressions are evaluated and their results inserted into the document:
@@ -93,8 +109,10 @@ Multi-line function bodies are supported:
 
 Functions can be called in two ways:
 
-1. **Inside expressions**: `#(max(a, b))` or `#(add(1, 2))`
-2. **Direct syntax** (built-ins only): `#max(a, b)` or `#min(x, y)`
+1. **Inside expressions**: `#(add(1, 2))` or `#(max(a, b))`
+2. **Direct syntax**: `#add(1, 2)` or `#max(a, b)`
+
+Both syntaxes work for user-defined and built-in functions.
 
 #### Built-in Functions
 
@@ -159,6 +177,8 @@ Markdown literals support:
 - **Expressions**: `#(variable)` or `#(expression)`
 - **Text and punctuation**: Mixed freely with formatting
 
+This syntax distinguishes between code and document content in control flow. Currently, this syntax is only supported inside of `#while` blocks.
+
 
 ### Data Types
 
@@ -167,7 +187,7 @@ Markdown literals support:
 - **Booleans**: `true`, `false`
 - **Arrays**: `[1, 2, 3]`, `["a", "b"]`
 - **Functions**: `fn(x) (x * 2)`
-- **Null**: `none` 
+- **None**: `none` 
 
 ## Error Reporting
 The document compiler features helpful, pretty error messages with:
