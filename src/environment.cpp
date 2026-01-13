@@ -32,5 +32,8 @@ std::shared_ptr<Environment> Environment::createGlobal() {
   env->define("len", Value{BuiltinFunction{"len", 1}});
   env->define("abs", Value{BuiltinFunction{"abs", 1}});
 
+  env->define("push", Value{BuiltinFunction{"push", -1}});
+  env->define("pop", Value{BuiltinFunction{"pop", 1}});
+
   return env;
 }

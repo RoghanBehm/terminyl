@@ -51,6 +51,8 @@ private:
   Document::Expr::Ptr factor();
   Document::Expr::Ptr unary();
   Document::Expr::Ptr primary();
+  Document::Expr::Ptr call_or_index();
+  Document::Expr::Ptr arrayLiteral();
   void synchronize();
   Document::BlockPtr block();
   Document::BlockPtr whileBlock();

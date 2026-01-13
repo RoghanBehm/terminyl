@@ -6,9 +6,11 @@
 #include <sstream>
 #include <variant>
 
+static bool isWhitespaceOnly(const std::vector<Document::InlinePtr> &inlines);
+
 std::string Lowerer::toString(const Value &val) {
   return std::visit(
-      [](auto const &x) -> std::string {
+      [this](auto const &x) -> std::string {
         using T = std::remove_cvref_t<decltype(x)>;
         if constexpr (std::is_same_v<T, double> || std::is_same_v<T, bool>) {
           std::ostringstream oss;
@@ -21,6 +23,16 @@ std::string Lowerer::toString(const Value &val) {
           return "Function";
         } else if constexpr (std::is_same_v<T, std::monostate>) {
           return "none";
+        } else if constexpr (std::is_same_v<T, Array>) {
+          std::ostringstream oss;
+          oss << "[";
+          for (size_t i = 0; i < x.elements.size(); ++i) {
+            if (i > 0)
+              oss << ", ";
+            oss << toString(x.elements[i]);
+          }
+          oss << "]";
+          return oss.str();
         } else {
           return x;
         }
@@ -56,8 +68,11 @@ void Lowerer::execStmt(const Document::BlockPtr &blk, Document &out) {
           out.add(Document::Block::make_paragraph(std::move(inls), blk->span));
         } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
           auto lowered = lowerInlines(b.inlines);
-          if (lowered.empty() && !b.inlines.empty() && isLetOnlyParagraph(b))
+
+          // Don’t emit paragraphs that produce no visible output
+          if (isWhitespaceOnly(lowered))
             return;
+
           out.add(
               Document::Block::make_paragraph(std::move(lowered), blk->span));
         } else if constexpr (std::is_same_v<T, Document::Block::Heading>) {
@@ -71,9 +86,9 @@ void Lowerer::execStmt(const Document::BlockPtr &blk, Document &out) {
 
 void Lowerer::execWhile(const Document::Block::While &w, SourceSpan span,
                         Document &out) {
-                          int iters = 0;
+  std::vector<Document::BlockPtr> loop_blocks;
+
   while (true) {
-      if (++iters > 100000) {   std::cerr << "while iters = " << iters << "\n"; }
     Value condv = eval(*w.cond);
     auto b = std::get_if<bool>(&condv.v);
     if (!b) {
@@ -83,9 +98,21 @@ void Lowerer::execWhile(const Document::Block::While &w, SourceSpan span,
     if (!*b)
       break;
 
+    // Collect blocks from this iteration into a temp document
+    Document temp_doc;
     for (auto const &stmt : w.body) {
-      execStmt(stmt, out);
+      execStmt(stmt, temp_doc);
     }
+
+    // Accumulate blocks found in loop
+    for (auto &blk : temp_doc.blocks()) {
+      loop_blocks.push_back(blk);
+    }
+  }
+
+  // Wrap iterations in group
+  if (!loop_blocks.empty()) {
+    out.add(Document::Block::make_group(std::move(loop_blocks), span));
   }
 }
 
@@ -187,6 +214,43 @@ Value Lowerer::eval(const Document::Expr &expr) {
           return Value{std::monostate{}};
         } else if constexpr (std::is_same_v<T, Document::Expr::Fn>) {
           return Value{UserFunction{node.params, node.body, environment_}};
+        } else if constexpr (std::is_same_v<T, Document::Expr::ArrayLiteral>) {
+          std::vector<Value> elements;
+          elements.reserve(node.elements.size());
+          for (auto const &elem : node.elements) {
+            elements.push_back(eval(*elem));
+          }
+          return Value{Array{std::move(elements)}};
+        } else if constexpr (std::is_same_v<T, Document::Expr::Index>) {
+          auto obj_value = eval(*node.object);
+          auto *arr = std::get_if<Array>(&obj_value.v);
+
+          if (!arr) {
+            error("Cannot index non-array type", expr.span);
+            return Value{Error{"Type error: not an array"}};
+          }
+
+          auto idx_value = eval(*node.index);
+          auto *idx_num = std::get_if<double>(&idx_value.v);
+
+          if (!idx_num) {
+            error("Array index must be a number", expr.span);
+            return Value{Error{"Type error: index not a number"}};
+          }
+
+          int idx = static_cast<int>(*idx_num);
+
+          // Negative indices wrap
+          if (idx < 0) {
+            idx = static_cast<int>(arr->elements.size()) + idx;
+          }
+
+          if (idx < 0 || idx >= static_cast<int>(arr->elements.size())) {
+            error("Array index out of bounds", expr.span);
+            return Value{Error{"Index out of bounds"}};
+          }
+
+          return arr->elements[idx];
         } else {
           error("Unhandled expression type", expr.span);
           return Value{Error{"Unhandled expr alternative"}};
@@ -380,9 +444,11 @@ Value Lowerer::evalCall(const Document::Expr::Call &node, SourceSpan span) {
 Value Lowerer::callFunction(const BuiltinFunction &func,
                             const std::vector<Value> &args, SourceSpan span) {
   // Check arity
-  if (args.size() != static_cast<size_t>(func.arity)) {
-    error("Expected " + std::to_string(func.arity) + " arguments", span);
-    return Value{Error{"Arity mismatch"}};
+  if (func.arity != -1) {
+    if (args.size() != static_cast<size_t>(func.arity)) {
+      error("Expected " + std::to_string(func.arity) + " arguments", span);
+      return Value{Error{"Arity mismatch"}};
+    }
   }
 
   if (func.name == "max") {
@@ -406,9 +472,11 @@ Value Lowerer::callFunction(const BuiltinFunction &func,
         [&](auto const &v) -> Value {
           using T = std::remove_cvref_t<decltype(v)>;
           if constexpr (std::is_same_v<T, std::string>) {
-            return Value{static_cast<double>(v.size()) - 2};
+            return Value{static_cast<double>(v.size())};
+          } else if constexpr (std::is_same_v<T, Array>) {
+            return Value{static_cast<double>(v.elements.size())};
           } else {
-            error("len() requires a string argument", span);
+            error("len() requires a string or array argument", span);
             return Value{Error{"Type error"}};
           }
         },
@@ -420,6 +488,36 @@ Value Lowerer::callFunction(const BuiltinFunction &func,
       return Value{Error{"Type error"}};
     }
     return Value{std::abs(*value)};
+  } else if (func.name == "push") {
+    if (args.empty()) {
+      error("push() requires at least 1 argument", span);
+      return Value{Error{"Arity mismatch"}};
+    }
+
+    auto *arr = std::get_if<Array>(&args[0].v);
+    if (!arr) {
+      error("First argument to push() must be an array", span);
+      return Value{Error{"Type error"}};
+    }
+    Array result = *arr;
+    for (size_t i = 1; i < args.size(); ++i) {
+      result.elements.push_back(args[i]);
+    }
+
+    return Value{std::move(result)};
+  } else if (func.name == "pop") {
+    auto *arr = std::get_if<Array>(&args[0].v);
+    if (!arr) {
+      error("pop() requires an array argument", span);
+      return Value{Error{"Type error"}};
+    }
+
+    if (arr->elements.empty()) {
+      error("Cannot pop from empty array", span);
+      return Value{Error{"Runtime error"}};
+    }
+
+    return arr->elements.back();
   }
   error("Unknown built-in function: " + func.name, span);
   return Value{Error{"Unknown function"}};
@@ -446,4 +544,32 @@ Value Lowerer::callFunction(const UserFunction &func,
   environment_ = previous_env;
 
   return result;
+}
+
+static bool isWhitespaceOnly(const std::vector<Document::InlinePtr> &inlines) {
+  for (auto const &inl : inlines) {
+    bool has_visible = std::visit(
+        [&](auto const &node) -> bool {
+          using U = std::remove_cvref_t<decltype(node)>;
+
+          if constexpr (std::is_same_v<U, Document::Inline::Text> ||
+                        std::is_same_v<U, Document::Inline::Code>) {
+            for (unsigned char c : node.text) {
+              if (!std::isspace(c))
+                return true;
+            }
+            return false;
+          } else if constexpr (std::is_same_v<U, Document::Inline::Bold> ||
+                               std::is_same_v<U, Document::Inline::Italic>) {
+            return !isWhitespaceOnly(node.children);
+          } else {
+            return true; // Other node types are visible
+          }
+        },
+        inl->node);
+
+    if (has_visible)
+      return false;
+  }
+  return true;
 }

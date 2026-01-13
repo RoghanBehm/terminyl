@@ -69,6 +69,7 @@ private:
   bool pending_block_directive_ = false;
   int bracket_depth_ = 0;
   int in_markdown_literal_ = false;
+  bool in_splice_expr_ = false;
   void error(std::string message, SourceSpan span);
 
   // Reserved words

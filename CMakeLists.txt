@@ -30,6 +30,7 @@ set(SOURCES
     src/lowerer.cpp
     src/error.cpp
     src/environment.cpp
+    src/value.cpp
 )
 
 add_library(core STATIC

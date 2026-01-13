@@ -52,4 +52,10 @@ private:
   bool is_punctuation(std::string_view s) const;
   bool should_glue_left(std::string_view s) const;
   bool should_glue_right(std::string_view s) const;
+  void renderBlock(std::ostream &out,
+                   const std::vector<Document::BlockPtr> &blocks,
+                   size_t i) const;
+  void renderGroup(std::ostream &out,
+                   const std::vector<Document::BlockPtr> &blocks) const;
+  bool isParagraph(const Document::BlockPtr &block) const;
 };

@@ -1,0 +1,78 @@
+#let nums = [1, 2, 3, 4, 5]
+Array: #(nums)
+
+
+#let empty = []
+Empty array: #(empty)
+Length: #(len(empty))
+
+
+#let mixed = [1, "hello", true, 3.14]
+First: #(mixed[0])
+Second: #(mixed[1])
+Third: #(mixed[2])
+Fourth: #(mixed[3])
+
+
+#let colors = ["red", "green", "blue"]
+First color: #(colors[0])
+Last color: #(colors[2])
+
+
+#let items = [10, 20, 30, 40]
+Last item: #(items[-1])
+Second to last: #(items[-2])
+
+#let matrix = [[1, 2], [3, 4], [5, 6]]
+First row: #(matrix[0])
+Element [1][1]: #(matrix[1][1])
+
+#let numbers = [10, 20, 30, 40, 50]
+Length: #(len(numbers))
+
+#let names = ["Alice", "Bob"]
+Name count: #(len(names))
+
+#let arr = [1, 2]
+#let arr = push(arr, 3)
+After push: #(arr)
+
+#let arr = push(arr, 4, 5, 6)
+After multi-push: #(arr)
+
+
+#let arr = [1, 2]
+#let arr = push(arr, 3)
+After push: #(arr)
+
+#let arr = push(arr, 4, 5, 6)
+After multi-push: #(arr)
+
+#let x = 2
+#let data = [10, 20, 30, 40]
+Value at index x: #(data[x])
+
+#let idx = 1 + 1
+Also value at x: #(data[idx])
+
+
+#let fruits = ["apple", "banana", "cherry"]
+
+I like #(fruits[0]) and #(fruits[2]).
+
+#let a = 10
+#let b = 20
+#let c = 30
+#let combined = [a, b, c]
+Result: #(combined)
+
+
+
+
+#let items = ["first", "second", "third"]
+#let i = 0
+
+#while i < len(items) {
+    [#(items[i])]
+    i = i + 1
+}

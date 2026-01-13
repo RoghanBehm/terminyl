@@ -84,6 +84,7 @@ void Lexer::lexToken() {
       // Only exit to TEXT mode if expression was triggered by #( and we're back
       // to depth 0
       if (paren_depth_ == 0 && paren_triggered_expr_) {
+        in_splice_expr_ = false;
         mode_ = LexerMode::TEXT;
         paren_triggered_expr_ = false;
       }
@@ -94,25 +95,40 @@ void Lexer::lexToken() {
     }
     break;
   case '[':
-    addToken(LEFT_SQ_BRACKET); // Already exists!
+    if (mode_ == LexerMode::EXPRESSION) {
+      addToken(LEFT_SQ_BRACKET);
+    } else if (mode_ == LexerMode::BLOCK) {
 
-    if (mode_ == LexerMode::EXPRESSION || mode_ == LexerMode::BLOCK) {
-      // Entering markdown literal
+      // Entering markdown literal in block mode
+      addToken(LEFT_SQ_BRACKET);
       mode_ = LexerMode::TEXT;
       in_markdown_literal_ = true;
       bracket_depth_ = 1;
+    } else {
+      // In text mode, treat as text
+      current--;
+      cur_pos.column--;
+      text();
     }
     break;
 
   case ']':
-    if (in_markdown_literal_) {
+    if (in_markdown_literal_ && !in_splice_expr_) {
       bracket_depth_--;
       if (bracket_depth_ == 0) {
         in_markdown_literal_ = false;
         mode_ = LexerMode::BLOCK;
       }
+      addToken(RIGHT_SQ_BRACKET);
+    } else if (mode_ == LexerMode::EXPRESSION) {
+      // In expr mode, ] closes array
+      addToken(RIGHT_SQ_BRACKET);
+    } else {
+      // Text mode
+      current--;
+      cur_pos.column--;
+      text();
     }
-    addToken(RIGHT_SQ_BRACKET);
     break;
   case ',':
     addToken(COMMA);
@@ -173,6 +189,7 @@ void Lexer::lexToken() {
         }
 
       } else if (peek() == '(') {
+        in_splice_expr_ = true;
         advance();
         paren_depth_ = 1;
         paren_triggered_expr_ = true;

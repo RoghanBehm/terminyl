@@ -19,6 +19,13 @@ struct Error {
   std::string message;
 };
 
+struct Value;
+struct Array {
+  std::vector<Value> elements;
+  Array() = default;
+  Array(std::vector<Value> elems);
+};
+
 struct Value {
-  std::variant<double, std::string, bool, Error, UserFunction, BuiltinFunction, std::monostate> v;
+  std::variant<double, std::string, bool, Error, UserFunction, BuiltinFunction, Array, std::monostate> v;
 };

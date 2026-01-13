@@ -50,9 +50,19 @@ public:
       Expr::Ptr body;
     };
 
+    struct ArrayLiteral {
+      std::vector<Ptr> elements;
+    };
+
+    struct Index {
+      Ptr object;
+      Ptr index;
+    };
+
     struct None {};
 
-    std::variant<None, Num, Var, Str, Call, Logical, Binary, Unary, Bool, Fn>
+    std::variant<None, Num, Var, Str, Call, Logical, Binary, Unary, Bool, Fn,
+                 ArrayLiteral, Index>
         node;
     SourceSpan span{};
 
@@ -66,6 +76,8 @@ public:
     Expr(Unary u, SourceSpan sp) : node(std::move(u)), span(sp) {}
     Expr(Bool b, SourceSpan sp) : node(b), span(sp) {}
     Expr(Fn f, SourceSpan sp) : node(std::move(f)), span(sp) {}
+    Expr(ArrayLiteral a, SourceSpan sp) : node(std::move(a)), span(sp) {}
+    Expr(Index i, SourceSpan sp) : node(std::move(i)), span(sp) {}
 
     static Ptr make_none(SourceSpan sp);
     static Ptr make_num(double v, SourceSpan sp);
@@ -78,6 +90,8 @@ public:
     static Ptr make_var(std::string name, SourceSpan sp);
     static Ptr make_fn(std::vector<std::string> params, Expr::Ptr body,
                        SourceSpan span);
+    static Ptr make_array(std::vector<Ptr> elements, SourceSpan sp);
+    static Ptr make_index(Ptr object, Ptr index, SourceSpan sp);
   };
 
   struct Inline {
@@ -151,7 +165,11 @@ public:
       Expr::Ptr expr;
     };
 
-    std::variant<Heading, Paragraph, While, Assign, ExprStmt> node;
+    struct Group {
+      std::vector<Block::Ptr> blocks;
+    };
+
+    std::variant<Heading, Paragraph, While, Assign, ExprStmt, Group> node;
     SourceSpan span{};
 
     Block(Heading h, SourceSpan sp) : node(std::move(h)), span(sp) {}
@@ -159,6 +177,7 @@ public:
     Block(While w, SourceSpan sp) : node(std::move(w)), span(sp) {}
     Block(Assign a, SourceSpan sp) : node(std::move(a)), span(sp) {}
     Block(ExprStmt e, SourceSpan sp) : node(std::move(e)), span(sp) {}
+    Block(Group g, SourceSpan sp) : node(std::move(g)), span(sp) {}
 
     static Ptr make_heading(int level, std::string text, SourceSpan sp);
     static Ptr make_paragraph(std::vector<Inline::Ptr> inlines, SourceSpan sp);
@@ -167,6 +186,7 @@ public:
 
     static Ptr make_assign(std::string name, Expr::Ptr value, SourceSpan sp);
     static Ptr make_exprstmt(Expr::Ptr expr, SourceSpan sp);
+    static Ptr make_group(std::vector<Block::Ptr> blocks, SourceSpan sp);
   };
 
   using InlinePtr = Inline::Ptr;

@@ -89,8 +89,14 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
       continue;
     }
 
+
     if (check(TokenType::HASH)) {
       flush_text();
+      
+      if (peekNext().getType() == TokenType::WHILE) {
+        break;
+      }
+      
       advance(); // '#'
 
       if (check(TokenType::LET)) {
@@ -107,6 +113,7 @@ std::vector<Document::InlinePtr> Parser::parseInlines(TokenType endToken) {
       }
       continue;
     }
+
     // Regular text
     const Token &token = advance();
 
@@ -340,7 +347,28 @@ Document::Expr::Ptr Parser::unary() {
     return Document::Expr::make_unary(op, std::move(right), sp);
   }
 
-  return primary();
+  return call_or_index();
+}
+
+Document::Expr::Ptr Parser::call_or_index() {
+  auto expr = primary();
+
+  while (true) {
+    if (match(TokenType::LEFT_SQ_BRACKET)) {
+      // Array indexing: expr[i]
+      auto index = expression();
+      auto end =
+          consume(TokenType::RIGHT_SQ_BRACKET, "Expected ']' after array index")
+              .span()
+              .end;
+      expr = Document::Expr::make_index(expr, index,
+                                        SourceSpan{expr->span.start, end});
+    } else {
+      break;
+    }
+  }
+
+  return expr;
 }
 
 Document::ExprPtr Parser::primary() {
@@ -365,6 +393,10 @@ Document::ExprPtr Parser::primary() {
     return Document::Expr::make_str(value, t.span());
   }
 
+  if (match(TokenType::LEFT_SQ_BRACKET)) {
+    return arrayLiteral();
+  }
+
   if (match(TokenType::IDENTIFIER)) {
     const Token &t = previous();
     std::string name = std::string(t.getLexeme());
@@ -387,10 +419,33 @@ Document::ExprPtr Parser::primary() {
     return e;
   }
 
-
   error("Expected literal or '('", peek().span());
   synchronize();
   return Document::Expr::make_num(0.0, previous().span()); // Error placeholder
+}
+
+Document::Expr::Ptr Parser::arrayLiteral() {
+  auto start = previous().span().start;
+  std::vector<Document::Expr::Ptr> elements;
+
+  // Empty array: []
+  if (check(TokenType::RIGHT_SQ_BRACKET)) {
+    auto end = advance().span().end;
+    return Document::Expr::make_array(std::move(elements),
+                                      SourceSpan{start, end});
+  }
+
+  do {
+    elements.push_back(expression());
+  } while (match(TokenType::COMMA));
+
+  auto end =
+      consume(TokenType::RIGHT_SQ_BRACKET, "Expected ']' after array elements")
+          .span()
+          .end;
+
+  return Document::Expr::make_array(std::move(elements),
+                                    SourceSpan{start, end});
 }
 
 Document::BlockPtr Parser::block() {
@@ -429,18 +484,18 @@ Document::BlockPtr Parser::whileBlock() {
   return Document::Block::make_while(std::move(cond), std::move(body), span);
 }
 
-
 Document::BlockPtr Parser::whileBody() {
-    if (check(TokenType::LEFT_SQ_BRACKET)) {
+  if (check(TokenType::LEFT_SQ_BRACKET)) {
     SourceSpan span = peek().span();
     advance(); // '['
-    
+
     auto inlines = parseInlines(TokenType::RIGHT_SQ_BRACKET);
     consume(TokenType::RIGHT_SQ_BRACKET, "Expected ']'");
-    
-    if (check(TokenType::NEWLINE)) advance();
+
+    if (check(TokenType::NEWLINE))
+      advance();
     span.end = previous().span().end;
-    
+
     return Document::Block::make_paragraph(std::move(inlines), span);
   }
   if (check(TokenType::IDENTIFIER) &&
@@ -460,7 +515,8 @@ Document::BlockPtr Parser::assignStmt() {
   consume(TokenType::EQUAL, "Expected '=' after identifier");
   Document::ExprPtr value = expression();
 
-  if (check(TokenType::NEWLINE)) advance();
+  if (check(TokenType::NEWLINE))
+    advance();
   span.end = previous().span().end;
 
   return Document::Block::make_assign(std::move(name), std::move(value), span);
@@ -472,12 +528,12 @@ Document::BlockPtr Parser::exprStmt() {
 
   Document::ExprPtr e = expression();
 
-  if (check(TokenType::NEWLINE)) advance();
+  if (check(TokenType::NEWLINE))
+    advance();
   span.end = previous().span().end;
 
   return Document::Block::make_exprstmt(std::move(e), span);
 }
-
 
 Document::BlockPtr Parser::heading() {
   const Token &token = advance();
@@ -501,13 +557,12 @@ Document::BlockPtr Parser::heading() {
 
 const Token &Parser::peek() const { return tokens_.at(current); }
 
-const Token& Parser::peekNext() const {
+const Token &Parser::peekNext() const {
   if (current + 1 >= static_cast<int>(tokens_.size())) {
     return tokens_.back();
   }
   return tokens_.at(current + 1);
 }
-
 
 const Token &Parser::previous() const {
   assert(current > 0);

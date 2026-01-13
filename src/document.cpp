@@ -80,6 +80,16 @@ Document::Expr::Ptr Document::Expr::make_fn(std::vector<std::string> params,
   return std::make_shared<Expr>(Fn{std::move(params), std::move(body)}, sp);
 }
 
+Document::Expr::Ptr Document::Expr::make_array(std::vector<Ptr> elements,
+                                               SourceSpan sp) {
+  return std::make_shared<Expr>(ArrayLiteral{std::move(elements)}, sp);
+}
+
+Document::Expr::Ptr Document::Expr::make_index(Ptr object, Ptr index,
+                                               SourceSpan sp) {
+  return std::make_shared<Expr>(Index{std::move(object), std::move(index)}, sp);
+}
+
 Document::Expr::Ptr Document::Expr::make_none(SourceSpan sp) {
   return std::make_shared<Expr>(None{}, sp);
 }
@@ -91,23 +101,27 @@ Document::Block::Ptr Document::Block::make_heading(int level, std::string text,
 
 Document::Block::Ptr
 Document::Block::make_paragraph(std::vector<Inline::Ptr> inlines,
-                               SourceSpan sp) {
+                                SourceSpan sp) {
   return std::make_shared<Block>(Paragraph{std::move(inlines)}, sp);
 }
 
-Document::Block::Ptr
-Document::Block::make_while(std::shared_ptr<Expr> cond, std::vector<Block::Ptr> body, SourceSpan sp) {
+Document::Block::Ptr Document::Block::make_while(std::shared_ptr<Expr> cond,
+                                                 std::vector<Block::Ptr> body,
+                                                 SourceSpan sp) {
   return std::make_shared<Block>(While{std::move(cond), std::move(body)}, sp);
 }
-
 
 Document::Block::Ptr
 Document::Block::make_assign(std::string name, Expr::Ptr value, SourceSpan sp) {
   return std::make_shared<Block>(Assign{std::move(name), std::move(value)}, sp);
 }
 
-Document::Block::Ptr
-Document::Block::make_exprstmt(Expr::Ptr expr, SourceSpan sp) {
+Document::Block::Ptr Document::Block::make_exprstmt(Expr::Ptr expr,
+                                                    SourceSpan sp) {
   return std::make_shared<Block>(ExprStmt{std::move(expr)}, sp);
 }
 
+Document::Block::Ptr Document::Block::make_group(std::vector<Block::Ptr> blocks,
+                                                 SourceSpan sp) {
+  return std::make_shared<Block>(Group{std::move(blocks)}, sp);
+}

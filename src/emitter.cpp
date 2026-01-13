@@ -5,23 +5,66 @@
 #include <variant>
 
 Emitter::Emitter(Style s) : style_(s) {}
-
 void Emitter::render(std::ostream &out, const Document &doc) const {
-  for (const auto &blk : doc.blocks()) {
-    std::visit(
-        [&](const auto &b) {
-          using T = std::remove_cvref_t<decltype(b)>;
+  const auto &blocks = doc.blocks();
 
-          if constexpr (std::is_same_v<T, Document::Block::Heading>) {
-            out << box_heading(b.text, b.level) << "\n";
-          } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
-            wrap_paragraph(out, b.inlines, style_.width,
-                           style_.paragraph_indent);
+  for (size_t i = 0; i < blocks.size(); ++i) {
+    renderBlock(out, blocks, i);
+  }
+}
+
+void Emitter::renderBlock(std::ostream &out,
+                          const std::vector<Document::BlockPtr> &blocks,
+                          size_t i) const {
+  const auto &blk = blocks[i];
+  const bool is_first = (i == 0);
+  const bool is_last = (i == blocks.size() - 1);
+
+  std::visit(
+      [&](const auto &b) {
+        using T = std::remove_cvref_t<decltype(b)>;
+
+        if constexpr (std::is_same_v<T, Document::Block::Heading>) {
+          if (!is_first) out << "\n";
+          out << box_heading(b.text, b.level);
+
+        } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
+          wrap_paragraph(out, b.inlines, style_.width,
+                        style_.paragraph_indent);
+          
+          if (!is_last && isParagraph(blocks[i + 1])) {
             out << "\n";
           }
+
+        } else if constexpr (std::is_same_v<T, Document::Block::Group>) {
+          renderGroup(out, b.blocks);
+          if (!is_last) out << "\n";
+        }
+      },
+      blk->node);
+}
+
+void Emitter::renderGroup(std::ostream &out,
+                          const std::vector<Document::BlockPtr> &blocks) const {
+  for (size_t j = 0; j < blocks.size(); ++j) {
+    std::visit(
+        [&](const auto &gb) {
+          using T = std::remove_cvref_t<decltype(gb)>;
+
+          if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
+            wrap_paragraph(out, gb.inlines, style_.width,
+                          style_.paragraph_indent);
+          } else if constexpr (std::is_same_v<T, Document::Block::Heading>) {
+            if (j > 0) out << "\n";
+            out << box_heading(gb.text, gb.level);
+          }
         },
-        blk->node);
+        blocks[j]->node);
   }
+}
+
+bool Emitter::isParagraph(const Document::BlockPtr &block) const {
+  return std::holds_alternative<Document::Block::Paragraph>(block->node);
 }
 
 std::string Emitter::render_to_string(const Document &doc) const {
@@ -30,47 +73,48 @@ std::string Emitter::render_to_string(const Document &doc) const {
   return out.str();
 }
 
-std::string Emitter::box_heading(std::string_view s, int level, std::size_t pad) const {
+std::string Emitter::box_heading(std::string_view s, int level,
+                                 std::size_t pad) const {
   const std::size_t w = s.size();
   const std::size_t inner = w + 2 * pad;
-  
+
   // Box style chosen based on heading level
   struct BoxChars {
-    const char* top_left;
-    const char* top_right;
-    const char* bottom_left;
-    const char* bottom_right;
-    const char* horizontal;
-    const char* vertical;
+    const char *top_left;
+    const char *top_right;
+    const char *bottom_left;
+    const char *bottom_right;
+    const char *horizontal;
+    const char *vertical;
   };
-  
+
   BoxChars chars;
   switch (level) {
-    case 1:  // h1 ('=')
-      chars = {"╔", "╗", "╚", "╝", "═", "║"};
-      break;
-    case 2:  // h2 ('==')
-      chars = {"┏", "┓", "┗", "┛", "━", "┃"};
-      break;
-    case 3:  // h3 ('===')
-      chars = {"┌", "┐", "└", "┘", "─", "│"};
-      break;
-    default:  // >= h4 ('====')
-      chars = {"╭", "╮", "╰", "╯", "─", "│"};
-      break;
+  case 1: // h1 ('=')
+    chars = {"╔", "╗", "╚", "╝", "═", "║"};
+    break;
+  case 2: // h2 ('==')
+    chars = {"┏", "┓", "┗", "┛", "━", "┃"};
+    break;
+  case 3: // h3 ('===')
+    chars = {"┌", "┐", "└", "┘", "─", "│"};
+    break;
+  default: // >= h4 ('====')
+    chars = {"╭", "╮", "╰", "╯", "─", "│"};
+    break;
   }
-  
+
   std::string horizontal_line;
   for (std::size_t i = 0; i < inner + 2; ++i) {
     horizontal_line += chars.horizontal;
   }
-  
+
   std::string out;
   out += chars.top_left + horizontal_line + chars.top_right + "\n";
-  out += std::string(chars.vertical) + std::string(pad + 1, ' ') + 
+  out += std::string(chars.vertical) + std::string(pad + 1, ' ') +
          std::string(s) + std::string(pad + 1, ' ') + chars.vertical + "\n";
   out += chars.bottom_left + horizontal_line + chars.bottom_right + "\n";
-  
+  out += '\n';
   return out;
 }
 
@@ -118,10 +162,10 @@ void Emitter::wrap_paragraph(std::ostream &out,
   StyleState current_state;
   std::string_view last_word;
 
-  for (const auto & r : runs) {
+  for (const auto &r : runs) {
     std::string_view s = r.text;
     std::size_t i = 0;
-    
+
     bool first_word_in_run = true;
 
     while (i < s.size()) {
@@ -148,20 +192,21 @@ void Emitter::wrap_paragraph(std::ostream &out,
       } else if (line_len != indent) {
         // Use glue logic to determine if we need a space
         bool should_add_space = true;
-        
+
         // Don't add space if current word should glue left
         if (should_glue_left(word)) {
           should_add_space = false;
         }
-        
+
         // Don't add space if previous word should glue right
         if (!last_word.empty() && should_glue_right(last_word)) {
           should_add_space = false;
         }
-        
+
         if (should_add_space) {
-          if (first_word_in_run && current_state != r.style && current_state != StyleState{}) {
-            out << "\x1b[0m"; 
+          if (first_word_in_run && current_state != r.style &&
+              current_state != StyleState{}) {
+            out << "\x1b[0m";
           }
           out << ' ';
           line_len += 1;
@@ -188,27 +233,30 @@ void Emitter::wrap_paragraph(std::ostream &out,
   out << '\n';
 }
 
-
 bool Emitter::is_punctuation(std::string_view s) const {
   bool saw_char = false;
   for (unsigned char c : s) {
-    if (std::isspace(c)) continue;
+    if (std::isspace(c))
+      continue;
     saw_char = true;
-    if (!std::ispunct(c)) return false;
+    if (!std::ispunct(c))
+      return false;
   }
   return saw_char;
 }
 
 bool Emitter::should_glue_left(std::string_view s) const {
-  if (s.empty() || !is_punctuation(s)) return false;
+  if (s.empty() || !is_punctuation(s))
+    return false;
   char first = s[0];
-  return first == ',' || first == '.' || first == '!' || 
-         first == '?' || first == ';' || first == ':' ||
-         first == '%' || first == ')' || first == ']' || first == '}';
+  return first == ',' || first == '.' || first == '!' || first == '?' ||
+         first == ';' || first == ':' || first == '%' || first == ')' ||
+         first == ']' || first == '}';
 }
 
 bool Emitter::should_glue_right(std::string_view s) const {
-  if (s.empty() || !is_punctuation(s)) return false;
+  if (s.empty() || !is_punctuation(s))
+    return false;
   char first = s[0];
   return first == '$' || first == '(' || first == '[' || first == '{';
 }
