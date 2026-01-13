@@ -17,7 +17,7 @@ _reports_, and formatted output with `variables` and functions.
 
 Total: $#(quarters[0] + quarters[1] + quarters[2])
 
-Growth Q1→Q2: #(((quarters[1] - quarters[0]) / quarters[0]) * 100)%
+Growth Q1-->Q2: #(((quarters[1] - quarters[0]) / quarters[0]) * 100)%
 
 The *quarterly performance* shows _significant improvement_ across
 all #(len(quarters)) quarters using the `growth rate` formula.

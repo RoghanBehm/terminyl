@@ -69,7 +69,7 @@ void Lowerer::execStmt(const Document::BlockPtr &blk, Document &out) {
         } else if constexpr (std::is_same_v<T, Document::Block::Paragraph>) {
           auto lowered = lowerInlines(b.inlines);
 
-          // Don’t emit paragraphs that produce no visible output
+          // Don't emit paragraphs that produce no visible output
           if (isWhitespaceOnly(lowered))
             return;
 
@@ -441,84 +441,160 @@ Value Lowerer::evalCall(const Document::Expr::Call &node, SourceSpan span) {
       func_value->v);
 }
 
+std::optional<double> Lowerer::asNumber(const Value &v,
+                                        const std::string &context,
+                                        SourceSpan span) {
+  auto num = std::get_if<double>(&v.v);
+  if (!num) {
+    error(context + " requires numeric argument", span);
+    return std::nullopt;
+  }
+  return *num;
+}
+
+std::optional<Array*> Lowerer::asArray(Value &v, const std::string &context,
+                                        SourceSpan span) {
+  auto arr = std::get_if<Array>(&v.v);
+  if (!arr) {
+    error(context + " requires array argument", span);
+    return std::nullopt;
+  }
+  return arr;
+}
+
+std::optional<const Array*>
+Lowerer::asArray(const Value &v, const std::string &context,
+                 SourceSpan span) const {
+  auto arr = std::get_if<Array>(&v.v);
+  if (!arr) {
+    return std::nullopt;
+  }
+  return arr;
+}
+
+void Lowerer::initBuiltinHandlers() {
+  builtin_handlers_["max"] = [this](const std::vector<Value> &args,
+                                     SourceSpan span) {
+    return builtinMax(args, span);
+  };
+
+  builtin_handlers_["min"] = [this](const std::vector<Value> &args,
+                                     SourceSpan span) {
+    return builtinMin(args, span);
+  };
+
+  builtin_handlers_["len"] = [this](const std::vector<Value> &args,
+                                     SourceSpan span) {
+    return builtinLen(args, span);
+  };
+
+  builtin_handlers_["abs"] = [this](const std::vector<Value> &args,
+                                     SourceSpan span) {
+    return builtinAbs(args, span);
+  };
+
+  builtin_handlers_["push"] = [this](const std::vector<Value> &args,
+                                      SourceSpan span) {
+    return builtinPush(args, span);
+  };
+
+  builtin_handlers_["pop"] = [this](const std::vector<Value> &args,
+                                     SourceSpan span) {
+    return builtinPop(args, span);
+  };
+}
+
+Value Lowerer::builtinMax(const std::vector<Value> &args, SourceSpan span) {
+  auto a = asNumber(args[0], "#max(x, y)", span);
+  auto b = asNumber(args[1], "#max(x, y)", span);
+  if (!a || !b) {
+    return Value{Error{"Type error"}};
+  }
+  return Value{std::max(*a, *b)};
+}
+
+Value Lowerer::builtinMin(const std::vector<Value> &args, SourceSpan span) {
+  auto a = asNumber(args[0], "#min(x, y)", span);
+  auto b = asNumber(args[1], "#min(x, y)", span);
+  if (!a || !b) {
+    return Value{Error{"Type error"}};
+  }
+  return Value{std::min(*a, *b)};
+}
+
+Value Lowerer::builtinLen(const std::vector<Value> &args, SourceSpan span) {
+  return std::visit(
+      [&](auto const &v) -> Value {
+        using T = std::remove_cvref_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          return Value{static_cast<double>(v.size())};
+        } else if constexpr (std::is_same_v<T, Array>) {
+          return Value{static_cast<double>(v.elements.size())};
+        } else {
+          error("len() requires a string or array argument", span);
+          return Value{Error{"Type error"}};
+        }
+      },
+      args[0].v);
+}
+
+Value Lowerer::builtinAbs(const std::vector<Value> &args, SourceSpan span) {
+  auto value = asNumber(args[0], "#abs(x)", span);
+  if (!value) {
+    return Value{Error{"Type error"}};
+  }
+  return Value{std::abs(*value)};
+}
+
+Value Lowerer::builtinPush(const std::vector<Value> &args, SourceSpan span) {
+  if (args.empty()) {
+    error("push() requires at least 1 argument", span);
+    return Value{Error{"Arity mismatch"}};
+  }
+
+  auto *arr = std::get_if<Array>(&args[0].v);
+  if (!arr) {
+    error("First argument to push() must be an array", span);
+    return Value{Error{"Type error"}};
+  }
+
+  Array result = *arr;
+  for (size_t i = 1; i < args.size(); ++i) {
+    result.elements.push_back(args[i]);
+  }
+
+  return Value{std::move(result)};
+}
+
+Value Lowerer::builtinPop(const std::vector<Value> &args, SourceSpan span) {
+  auto *arr = std::get_if<Array>(&args[0].v);
+  if (!arr) {
+    error("pop() requires an array argument", span);
+    return Value{Error{"Type error"}};
+  }
+
+  if (arr->elements.empty()) {
+    error("Cannot pop from empty array", span);
+    return Value{Error{"Runtime error"}};
+  }
+
+  return arr->elements.back();
+}
+
 Value Lowerer::callFunction(const BuiltinFunction &func,
                             const std::vector<Value> &args, SourceSpan span) {
   // Check arity
-  if (func.arity != -1) {
-    if (args.size() != static_cast<size_t>(func.arity)) {
-      error("Expected " + std::to_string(func.arity) + " arguments", span);
-      return Value{Error{"Arity mismatch"}};
-    }
+  if (func.arity != -1 && args.size() != static_cast<size_t>(func.arity)) {
+    error("Expected " + std::to_string(func.arity) + " arguments", span);
+    return Value{Error{"Arity mismatch"}};
   }
 
-  if (func.name == "max") {
-    auto a = std::get_if<double>(&args[0].v);
-    auto b = std::get_if<double>(&args[1].v);
-    if (!a || !b) {
-      error("#max(x, y) requires numeric arguments", span);
-      return Value{Error{"Type error"}};
-    }
-    return Value{std::max(*a, *b)};
-  } else if (func.name == "min") {
-    auto a = std::get_if<double>(&args[0].v);
-    auto b = std::get_if<double>(&args[1].v);
-    if (!a || !b) {
-      error("#min(x, y) requires numeric arguments", span);
-      return Value{Error{"Type error"}};
-    }
-    return Value{std::min(*a, *b)};
-  } else if (func.name == "len") {
-    return std::visit(
-        [&](auto const &v) -> Value {
-          using T = std::remove_cvref_t<decltype(v)>;
-          if constexpr (std::is_same_v<T, std::string>) {
-            return Value{static_cast<double>(v.size())};
-          } else if constexpr (std::is_same_v<T, Array>) {
-            return Value{static_cast<double>(v.elements.size())};
-          } else {
-            error("len() requires a string or array argument", span);
-            return Value{Error{"Type error"}};
-          }
-        },
-        args[0].v);
-  } else if (func.name == "abs") {
-    auto value = std::get_if<double>(&args[0].v);
-    if (!value) {
-      error("#abs(x) requires numeric argument", span);
-      return Value{Error{"Type error"}};
-    }
-    return Value{std::abs(*value)};
-  } else if (func.name == "push") {
-    if (args.empty()) {
-      error("push() requires at least 1 argument", span);
-      return Value{Error{"Arity mismatch"}};
-    }
-
-    auto *arr = std::get_if<Array>(&args[0].v);
-    if (!arr) {
-      error("First argument to push() must be an array", span);
-      return Value{Error{"Type error"}};
-    }
-    Array result = *arr;
-    for (size_t i = 1; i < args.size(); ++i) {
-      result.elements.push_back(args[i]);
-    }
-
-    return Value{std::move(result)};
-  } else if (func.name == "pop") {
-    auto *arr = std::get_if<Array>(&args[0].v);
-    if (!arr) {
-      error("pop() requires an array argument", span);
-      return Value{Error{"Type error"}};
-    }
-
-    if (arr->elements.empty()) {
-      error("Cannot pop from empty array", span);
-      return Value{Error{"Runtime error"}};
-    }
-
-    return arr->elements.back();
+  // Dispatch to handler
+  auto it = builtin_handlers_.find(func.name);
+  if (it != builtin_handlers_.end()) {
+    return it->second(args, span);
   }
+
   error("Unknown built-in function: " + func.name, span);
   return Value{Error{"Unknown function"}};
 }
@@ -546,7 +622,7 @@ Value Lowerer::callFunction(const UserFunction &func,
   return result;
 }
 
-static bool isWhitespaceOnly(const std::vector<Document::InlinePtr> &inlines) {
+bool Lowerer::isWhitespaceOnly(const std::vector<Document::InlinePtr> &inlines) {
   for (auto const &inl : inlines) {
     bool has_visible = std::visit(
         [&](auto const &node) -> bool {
@@ -563,7 +639,7 @@ static bool isWhitespaceOnly(const std::vector<Document::InlinePtr> &inlines) {
                                std::is_same_v<U, Document::Inline::Italic>) {
             return !isWhitespaceOnly(node.children);
           } else {
-            return true; // Other node types are visible
+            return true; // Other node types visible
           }
         },
         inl->node);
